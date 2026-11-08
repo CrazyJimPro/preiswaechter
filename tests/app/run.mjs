@@ -293,7 +293,9 @@ try {
 } finally {
   child.kill('SIGTERM');
   shop.close();
-  fs.rmSync(userData, { recursive: true, force: true });
+  // Unter Windows kann die App die Dateien noch kurz festhalten
+  await sleep(1000);
+  try { fs.rmSync(userData, { recursive: true, force: true }); } catch { /* temporärer Ordner, egal */ }
 }
 console.log(errors.length ? `FEHLER:\n- ${errors.join('\n- ')}\n--- App-Ausgabe:\n${log.slice(-1500)}` : 'ALLES OK');
 process.exit(errors.length ? 1 : 0);

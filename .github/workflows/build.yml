@@ -1,0 +1,119 @@
+# Baut den Preiswächter für Linux (AppImage) und Windows (PreiswaechterSetup.exe),
+# testet die fertigen Dateien mit dem App-Test und hängt sie an das veröffentlichte Release.
+#
+# - Release auf GitHub veröffentlichen  -> bauen, testen, Dateien anhängen
+# - "Run workflow" von Hand               -> nur bauen und testen (Artefakte)
+name: Bauen und veröffentlichen
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Bauen (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-24.04
+            build: npm run dist:linux
+            files: dist/Preiswaechter-x86_64.AppImage
+          - name: Windows
+            os: windows-latest
+            build: npm run dist:win
+            files: dist/PreiswaechterSetup.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Downloads von github.com brechen gelegentlich mit 504 ab, daher mehrere Versuche
+      - name: Abhängigkeiten installieren
+        shell: bash
+        run: |
+          for i in 1 2 3 4; do npm ci && exit 0; echo "Versuch $i fehlgeschlagen, warte ..."; sleep 60; done
+          exit 1
+
+      - name: Unit-Tests
+        run: npm test
+
+      - name: Paket bauen
+        shell: bash
+        run: |
+          for i in 1 2 3 4; do ${{ matrix.build }} && exit 0; echo "Versuch $i fehlgeschlagen, warte ..."; sleep 60; done
+          exit 1
+
+      - name: Fertige Datei testen (Linux)
+        if: runner.os == 'Linux'
+        env:
+          OHNE_INFOBEREICH: '1'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libfuse2t64 xvfb
+          # Auf GitHubs Ubuntu 24.04 ist die Chromium-Sandbox gesperrt; nur hier im Test abgeschaltet
+          xvfb-run -a node tests/app/run.mjs "$PWD/dist/Preiswaechter-x86_64.AppImage" --no-sandbox
+
+      - name: Installer testen (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          OHNE_INFOBEREICH: '1'
+        run: |
+          Start-Process dist\PreiswaechterSetup.exe -ArgumentList '/S' -Wait
+          Start-Sleep -Seconds 3
+          Stop-Process -Name Preiswaechter -Force -ErrorAction SilentlyContinue
+          $exe = "$env:LOCALAPPDATA\Programs\Preiswaechter\Preiswaechter.exe"
+          if (-not (Test-Path $exe)) { throw "Nicht installiert: $exe" }
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Filter 'Preisw*chter.lnk'
+          if (-not $lnk) { throw 'Startmenü-Eintrag fehlt' }
+          Write-Host "Installiert: $exe"
+          node tests/app/run.mjs $exe
+          if ($LASTEXITCODE -ne 0) { throw 'App-Test fehlgeschlagen' }
+          Start-Sleep -Seconds 2
+          Stop-Process -Name Preiswaechter -Force -ErrorAction SilentlyContinue
+
+          # Deinstallieren muss den Autostart-Eintrag mitnehmen
+          $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+          New-ItemProperty -Path $run -Name 'de.crazyjimpro.preiswaechter' -Value "`"$exe`" --autostart" -Force | Out-Null
+          Start-Process "$env:LOCALAPPDATA\Programs\Preiswaechter\Uninstall Preiswaechter.exe" -ArgumentList '/S' -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path $exe) { throw "Nach dem Deinstallieren noch vorhanden: $exe" }
+          if (Get-ItemProperty -Path $run -Name 'de.crazyjimpro.preiswaechter' -ErrorAction SilentlyContinue) {
+            throw 'Autostart-Eintrag nach dem Deinstallieren noch vorhanden'
+          }
+          Write-Host 'Deinstallation sauber'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preiswaechter-${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    name: An Release anhängen
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefakte
+          merge-multiple: true
+
+      - name: Dateien hochladen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la artefakte
+          gh release upload "${{ github.event.release.tag_name }}" artefakte/* \
+            --repo "${{ github.repository }}" --clobber
