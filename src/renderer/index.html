@@ -9,7 +9,11 @@
 </head>
 <body>
   <header class="top">
-    <a href="#" class="brand"><h1>Preiswächter</h1></a>
+    <span class="head-left">
+      <a href="#" class="brand"><h1>Preiswächter</h1></a>
+      <button id="app-version" type="button" class="version-label" title="Versionshinweise öffnen"></button>
+      <button id="update-badge" type="button" class="update-badge" title="Download-Seite öffnen" hidden></button>
+    </span>
     <span class="head-right">
       <span id="summary" class="muted"></span>
       <button id="check-all" type="button">Alle jetzt prüfen</button>
@@ -18,9 +22,10 @@
   </header>
 
   <main>
-    <p id="update-banner" class="update" hidden>
-      Eine neue Version ist da: <strong id="update-version"></strong>.
-      <button id="update-open" type="button">Zum Download</button>
+    <p id="updated-banner" class="update" hidden>
+      Aktualisiert auf Version <strong id="updated-version"></strong>.
+      <button id="updated-notes" type="button">Was ist neu?</button>
+      <button id="updated-ok" type="button">Alles klar</button>
     </p>
 
     <!-- Liste aller Produkte -->
@@ -167,6 +172,10 @@
       <div class="panel">
         <h3>Über die App</h3>
         <p class="muted small" id="o-version"></p>
+        <div class="opt-row">
+          <button id="o-check-update" type="button">Nach Updates suchen</button>
+          <span id="o-update-result" class="muted small"></span>
+        </div>
         <div class="opt-row">
           <button id="o-folder" type="button">Datenordner öffnen</button>
           <button id="o-remove" type="button" hidden>Aus dem Startmenü entfernen und beenden</button>

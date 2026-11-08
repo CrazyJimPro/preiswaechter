@@ -11,7 +11,7 @@ import { createChecker } from './checker.js';
 import { isWebUrl, readPage, readVisible } from './reader.js';
 import { initTray, setTrayUnread, trayActive } from './tray.js';
 import {
-  isAutostartEnabled, refreshAutostartPath, setAutostart, startedByAutostart,
+  isAutostartEnabled, programPath, refreshAutostartPath, setAutostart, startedByAutostart,
 } from './autostart.js';
 import { canIntegrate, installMenuEntry, removeMenuEntry } from './desktop.js';
 import { notificationsFor, notificationText } from '../lib/rules.js';
@@ -31,6 +31,11 @@ const TICK_MS = 60 * 1000;
 const FIRST_CHECK_MS = 20 * 1000;
 const UPDATE_CHECK_MS = 24 * 60 * 60 * 1000;
 const IS_TEST = !!process.env.PREISWAECHTER_TEST;
+const HANDOVER_POLLS = 30;
+const HANDOVER_POLL_MS = 200;
+
+/** Im Test lässt sich eine andere Version vorgeben, um Updates durchzuspielen. */
+const currentVersion = () => (IS_TEST && process.env.PREISWAECHTER_FAKE_VERSION) || app.getVersion();
 
 // Datenordner ohne Umlaut, das lässt sich leichter finden und tippen
 app.setPath('userData', process.env.PREISWAECHTER_USERDATA || path.join(app.getPath('appData'), 'Preiswaechter'));
@@ -43,7 +48,8 @@ let mainWindow = null;
 let store = null;
 let checker = null;
 let importPlan = null;
-let latestVersion = null;
+let latestVersion = (IS_TEST && process.env.PREISWAECHTER_FAKE_LATEST) || null;
+let updatedTo = null; // gesetzt, wenn die App seit dem letzten Start aktualisiert wurde
 const openNotifications = new Set(); // sonst räumt der Speicherbereiniger sie weg und Klicks gehen verloren
 const testLog = { notifications: [] };
 
@@ -135,14 +141,31 @@ const methods = {
     return isWebUrl(text) && !/\s/.test(text) ? text : null;
   },
   appInfo: () => ({
-    version: app.getVersion(),
+    version: currentVersion(),
     latestVersion,
-    updateAvailable: !!latestVersion && isNewer(latestVersion, app.getVersion()),
-    releasesUrl: `https://github.com/${REPO}/releases/latest`,
+    updateAvailable: !!latestVersion && isNewer(latestVersion, currentVersion()),
+    updatedTo,
     autostart: isAutostartEnabled(),
     canRemoveMenuEntry: canIntegrate(),
     platform: process.platform,
   }),
+  /** Versionshinweise einer Version bei GitHub öffnen. */
+  openReleaseNotes(version) {
+    const tag = /^[\d.]+$/.test(String(version)) ? `tag/v${version}` : 'latest';
+    shell.openExternal(`https://github.com/${REPO}/releases/${tag}`);
+  },
+  dismissUpdated() {
+    updatedTo = null;
+  },
+  /** Knopf „Nach Updates suchen“. */
+  async checkUpdate() {
+    const reached = await checkForUpdate();
+    return {
+      reached,
+      latest: latestVersion,
+      updateAvailable: !!latestVersion && isNewer(latestVersion, currentVersion()),
+    };
+  },
   setAutostart: (on) => setAutostart(!!on),
   testNotification() {
     notify('Preiswächter: Test', 'So sieht eine Benachrichtigung aus. Ein Klick öffnet die App.', showWindow);
@@ -214,6 +237,7 @@ if (IS_TEST) {
     pid: process.pid,
   });
   methods.closeWindow = () => { if (mainWindow) mainWindow.close(); };
+  methods.setFakeLatest = (v) => { latestVersion = v; };
   // wie ein Klick auf das X der übrigen Fenster
   methods.closeOtherWindows = () => {
     for (const w of BrowserWindow.getAllWindows()) if (w !== mainWindow) w.close();
@@ -328,26 +352,80 @@ function startSchedule() {
   powerMonitor.on('resume', () => setTimeout(tick, 30 * 1000));
 }
 
+/** Fragt GitHub nach der neuesten Version. false, wenn GitHub nicht erreichbar war. */
 async function checkForUpdate() {
+  if (IS_TEST && process.env.PREISWAECHTER_FAKE_LATEST) return true; // Tests ohne Netz
   try {
     const res = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
       headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Preiswaechter' },
     });
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const { tag_name: tag } = await res.json();
-    if (tag) {
-      latestVersion = String(tag).replace(/^v/, '');
-      if (mainWindow) mainWindow.webContents.send('pw:changed');
-    }
-  } catch { /* offline oder GitHub nicht erreichbar: kein Hinweis */ }
+    if (!tag) return false;
+    latestVersion = String(tag).replace(/^v/, '');
+    if (mainWindow) mainWindow.webContents.send('pw:changed');
+    return true;
+  } catch {
+    return false; // offline oder GitHub nicht erreichbar: kein Hinweis
+  }
+}
+
+/** Merkt sich die Version, um nach einem Update „Aktualisiert auf …“ zu zeigen. */
+function noteVersion() {
+  const s = store.getSettings();
+  const version = currentVersion();
+  // Bis 1.0.0 wurde die Version nicht gemerkt, vorhandene Daten verraten eine ältere Installation
+  const hadOlder = !s.lastVersion && (s.autostartConfigured || store.listProducts().length > 0);
+  if (hadOlder || (s.lastVersion && s.lastVersion !== version)) updatedTo = version;
+  if (s.lastVersion !== version) store.saveSettings({ lastVersion: version });
 }
 
 // ---------- Start ----------
 
-if (!app.requestSingleInstanceLock()) {
+// Startet eine neuere Datei, während die alte noch im Infobereich läuft, würde sonst nur das
+// alte Fenster nach vorn kommen und das Update scheinbar nichts bewirken.
+const lockData = { version: currentVersion(), exe: programPath(), args: process.argv.slice(1) };
+
+/**
+ * Linux: Die Sperre einer laufenden App ist ein Verweis „Rechner-PID“. Ist diese App älter, beendet
+ * sie sich gleich (siehe second-instance), und diese hier läuft einfach weiter. Bleibt sie laufen,
+ * zeigt sie ihr Fenster und diese hier geht nach kurzer Zeit wieder. So entsteht kein Hilfsprozess,
+ * der offene Dateien der alten App erbt, und das AppImage wird nicht neu gestartet.
+ */
+async function waitForOlderInstance() {
+  if (process.platform !== 'linux') return false;
+  let pid = NaN;
+  try {
+    pid = Number(fs.readlinkSync(path.join(app.getPath('userData'), 'SingletonLock')).split('-').pop());
+  } catch {
+    return false;
+  }
+  if (!pid) return false;
+  for (let i = 0; i < HANDOVER_POLLS; i++) {
+    await new Promise((r) => setTimeout(r, HANDOVER_POLL_MS));
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return app.requestSingleInstanceLock(lockData); // alte App ist weg
+    }
+  }
+  return false;
+}
+
+if (!app.requestSingleInstanceLock(lockData) && !(await waitForOlderInstance())) {
   app.quit();
 } else {
-  app.on('second-instance', showWindow);
+  app.on('second-instance', (event, argv, cwd, data) => {
+    if (data && data.exe && isNewer(data.version, currentVersion())) {
+      console.info(`Neuere Version ${data.version} gestartet, diese App beendet sich`);
+      if (store) store.flush();
+      // Unter Linux wartet die neue App und übernimmt, unter Windows ersetzt sonst der Installer die App
+      if (process.platform !== 'linux') app.relaunch({ execPath: data.exe, args: Array.isArray(data.args) ? data.args : [] });
+      app.quit();
+      return;
+    }
+    showWindow();
+  });
   app.whenReady().then(() => {
     initLog();
     app.setAppUserModelId(APP_ID);
@@ -355,6 +433,7 @@ if (!app.requestSingleInstanceLock()) {
     checker = createChecker(store);
     checker.onChecked(onProductChecked);
     applyTheme(store.getSettings().theme);
+    noteVersion();
     store.onChange(() => {
       setTrayUnread(store.getUnread().length);
       if (mainWindow) mainWindow.webContents.send('pw:changed');

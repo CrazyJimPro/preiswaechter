@@ -89,10 +89,13 @@ Vorhandene Produkte bleiben dabei unverändert, nur ihr Preisverlauf wird ergän
 
 ## Aktualisieren
 
-Gibt es eine neue Version, erscheint oben in der App ein Hinweis mit dem Knopf **Zum Download**.
+Die Versionsnummer steht oben neben dem Namen, ein Klick darauf zeigt die Versionshinweise. Bei jedem Start fragt die App bei GitHub nach. Gibt es etwas Neues, erscheint dort das Abzeichen **Update verfügbar: vX**. Von Hand geht das unter **⚙ Einstellungen** → **Nach Updates suchen**.
 
-1. Lade **PreiswaechterSetup.exe** wie oben herunter und starte die Datei.
-2. Die neue Version ersetzt die alte. Deine Produkte und Einstellungen bleiben erhalten.
+1. Klicke auf das Abzeichen und lade auf der Seite unter **Assets** die Datei **PreiswaechterSetup.exe** herunter.
+2. Starte die Datei. Die neue Version ersetzt die alte.
+3. Oben erscheint **Aktualisiert auf Version X**, und neben dem Namen steht die neue Nummer.
+
+Deine Produkte und Einstellungen bleiben erhalten.
 
 ## Deinstallieren
 

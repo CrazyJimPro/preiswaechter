@@ -103,6 +103,20 @@ export function setupSettings() {
 
   $('o-import-cancel').addEventListener('click', () => { $('o-import-plan').hidden = true; });
 
+  $('o-check-update').addEventListener('click', async (e) => {
+    const out = $('o-update-result');
+    e.target.disabled = true;
+    out.textContent = 'Wird gesucht …';
+    try {
+      const r = await rpc.checkUpdate();
+      if (!r.reached) out.textContent = 'GitHub ist gerade nicht erreichbar, bitte später noch einmal versuchen.';
+      else if (r.updateAvailable) out.textContent = `Version ${r.latest} ist verfügbar, siehe oben neben dem Namen.`;
+      else out.textContent = 'Du hast die neueste Version ✓';
+    } finally {
+      e.target.disabled = false;
+    }
+  });
+
   $('o-folder').addEventListener('click', () => rpc.openDataFolder());
 
   $('o-remove').addEventListener('click', (e) => {

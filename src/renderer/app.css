@@ -132,3 +132,10 @@ label.check input { margin-top: 3px; }
 /* Was hat sich seit dem Hinzufügen getan? */
 .since-line { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
 .since-line strong { color: var(--text); }
+
+/* Version und Update-Hinweis im Kopf */
+.head-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.version-label { border: none; background: none; padding: 2px 4px; font-size: 12px; color: var(--muted); }
+.version-label:hover { color: var(--accent); text-decoration: underline; }
+.update-badge { background: var(--warn-bg); color: var(--warn-text); border-color: transparent; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.update-badge:hover { text-decoration: underline; }

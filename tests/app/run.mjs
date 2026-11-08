@@ -1,7 +1,7 @@
 // App-Test: startet die echte Electron-App unsichtbar und bedient sie über die
 // Debug-Schnittstelle, mit einem kleinen Test-Shop, dessen Preis sich ändern lässt.
 // Aufruf: node tests/app/run.mjs [Programmdatei] [Zusatzargumente]
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -15,6 +15,10 @@ const PORT = 9347;
 // Fotos gehen nur mit sichtbarem Fenster: FOTOS=1 node tests/app/run.mjs
 const SHOTS_ON = !!process.env.FOTOS;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const within = (ms, promise) => Promise.race([
+  promise,
+  new Promise((resolve, reject) => setTimeout(() => reject(new Error('Frist abgelaufen')), ms)),
+]);
 const errors = [];
 const ok = (cond, msg) => { console.log(`  ${cond ? '✓' : '✗'} ${msg}`); if (!cond) errors.push(msg); };
 
@@ -41,11 +45,18 @@ const shop = http.createServer((req, res) => {
 await new Promise((r) => shop.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${shop.address().port}`;
 
+// Eine liegengebliebene Testinstanz würde den Test still an die falsche App hängen
+const portBusy = await fetch(`http://127.0.0.1:${PORT}/json/version`, { signal: AbortSignal.timeout(3000) }).then(() => true, (err) => err.name === 'TimeoutError');
+if (portBusy) {
+  console.error(`Port ${PORT} ist belegt: Eine frühere Testinstanz läuft noch. Bitte erst beenden.`);
+  process.exit(2);
+}
+
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-app-'));
 const [bin, ...binArgs] = process.argv.slice(2);
 const cmd = bin || path.join(ROOT, 'node_modules/.bin/electron');
 const args = [...(bin ? binArgs : [ROOT]), `--remote-debugging-port=${PORT}`];
-const launch = () => spawn(cmd, args, { env: {
+const launch = (extraEnv = {}) => spawn(cmd, args, { env: {
   ...process.env,
   PREISWAECHTER_USERDATA: userData,
   PREISWAECHTER_TEST: '1',
@@ -53,6 +64,8 @@ const launch = () => spawn(cmd, args, { env: {
   XDG_CONFIG_HOME: path.join(userData, 'xdg-config'),
   XDG_DATA_HOME: path.join(userData, 'xdg-data'),
   ...(SHOTS_ON ? {} : { PREISWAECHTER_HIDDEN: '1' }),
+  PREISWAECHTER_FAKE_LATEST: '9.9.9', // Tests sollen nicht von GitHub abhängen
+  ...extraEnv,
 }, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 let child = launch();
@@ -63,6 +76,8 @@ const watchLog = (c) => {
 watchLog(child);
 
 let browser;
+let relaunchedPid = null; // Windows: Nach der Übergabe ist die neue App kein Kindprozess des Tests mehr
+let newerChild = null;
 try {
   for (let i = 0; i < 60 && !browser; i++) {
     await sleep(500);
@@ -107,6 +122,25 @@ try {
   ok(await page.evaluate(() => window.pw.call('gibtsnicht').then(() => false, () => true)), 'unbekannte Aufrufe werden abgelehnt');
   ok((await page.evaluate(() => document.querySelector('#empty').hidden)) === false, 'Hinweis bei leerer Liste');
   ok(await page.evaluate(() => window.pw.call('clipboardUrl').then((v) => v === null || typeof v === 'string', () => false)), 'Zwischenablage lesbar');
+
+  console.log('Version und Update-Hinweis');
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+  await page.waitForFunction(() => document.getElementById('app-version').textContent !== '', { timeout: 3000 });
+  ok((await page.evaluate(() => document.getElementById('app-version').textContent)) === `v${pkgVersion}`, `Version im Kopf: v${pkgVersion}`);
+  ok((await page.evaluate(() => document.getElementById('update-badge').textContent)) === 'Update verfügbar: v9.9.9' && (await page.evaluate(() => !document.getElementById('update-badge').hidden)), 'Abzeichen „Update verfügbar: v9.9.9“');
+  ok(await page.evaluate(() => document.getElementById('updated-banner').hidden), 'beim ersten Start kein „Aktualisiert“');
+  await page.evaluate(() => { location.hash = '#/einstellungen'; });
+  await sleep(200);
+  await page.evaluate(() => document.getElementById('o-check-update').click());
+  await page.waitForFunction(() => document.getElementById('o-update-result').textContent.includes('9.9.9'), { timeout: 3000 });
+  ok(true, 'Knopf „Nach Updates suchen“ meldet neue Version');
+  await call('setFakeLatest', pkgVersion);
+  await page.evaluate(() => document.getElementById('o-check-update').click());
+  await page.waitForFunction(() => document.getElementById('o-update-result').textContent.includes('neueste Version'), { timeout: 3000 });
+  ok(true, 'Knopf meldet: neueste Version');
+  await call('setFakeLatest', '9.9.9');
+  await page.evaluate(() => { location.hash = ''; });
+  await sleep(200);
 
   console.log('Produkt per Link hinzufügen');
   await submit(`${BASE}/p.html?utm_source=mail`);
@@ -337,7 +371,7 @@ try {
 
   console.log('Neustart');
   await sleep(1000);
-  child = launch();
+  child = launch({ PREISWAECHTER_FAKE_VERSION: '9.9.9' }); // simuliert: Datei durch neue Version ersetzt
   watchLog(child);
   browser = null;
   for (let i = 0; i < 60 && !browser; i++) {
@@ -354,11 +388,61 @@ try {
   ok((await again.evaluate(() => window.pw.call('listProducts'))).length === 3, 'Produkte wieder da');
   ok(await again.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches), 'Dunkles Design bleibt erhalten');
   ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(22, 27, 27)', 'Hintergrund nach dem Neustart dunkel');
+
+  console.log('Nach einem Update');
+  await again.waitForFunction(() => document.getElementById('app-version').textContent === 'v9.9.9', { timeout: 3000 });
+  ok(await again.evaluate(() => !document.getElementById('updated-banner').hidden && document.getElementById('updated-version').textContent === '9.9.9'), 'Hinweis „Aktualisiert auf Version 9.9.9“');
+  ok(await again.evaluate(() => document.getElementById('update-badge').hidden), 'kein Update-Abzeichen, wenn aktuell');
+  await again.evaluate(() => document.getElementById('updated-ok').click());
+  await sleep(200);
+  ok(await again.evaluate(() => document.getElementById('updated-banner').hidden), '„Alles klar“ blendet den Hinweis aus');
+
+  console.log('Neuere Datei startet, alte läuft noch');
+  const oldPid = (await again.evaluate(() => window.pw.call('testState'))).pid;
   browser.disconnect();
+  const newer = launch({ PREISWAECHTER_FAKE_VERSION: '10.0.0' });
+  watchLog(newer);
+  newerChild = newer;
+  const gone = (c) => c.exitCode != null || c.signalCode != null;
+  if (process.platform === 'linux') {
+    // Die neue App übernimmt selbst: Die alte ist weg, die neue läuft weiter und hat die Daten geöffnet
+    for (let i = 0; i < 40 && !gone(child); i++) await sleep(250);
+    await sleep(4000);
+    const appLog = fs.readFileSync(path.join(userData, 'logs', 'preiswaechter.log'), 'utf8');
+    const afterHandover = appLog.slice(appLog.lastIndexOf('diese App beendet sich'));
+    ok(gone(child), 'alte App beendet');
+    ok(!gone(newer) && afterHandover.includes('gestartet'), 'neue App übernimmt und läuft weiter');
+    // Auch der zweite Fall: Gleiche Version nochmal gestartet, die laufende bleibt
+    const same = launch({ PREISWAECHTER_FAKE_VERSION: '10.0.0' });
+    watchLog(same);
+    for (let i = 0; i < 48 && !gone(same); i++) await sleep(250);
+    ok(gone(same) && !gone(newer), 'gleiche Version: laufende App bleibt, zweiter Start geht wieder');
+  } else {
+    let swapped = null;
+    for (let i = 0; i < 40 && !swapped; i++) {
+      await sleep(500);
+      let b = null;
+      try {
+        b = await within(3000, puppeteer.connect({ browserURL: `http://127.0.0.1:${PORT}`, defaultViewport: null, protocolTimeout: 3000 }));
+        const pg = (await within(3000, b.pages())).find((x) => x.url().startsWith('preiswaechter://'));
+        if (pg) {
+          const st = await within(3000, pg.evaluate(() => window.pw.call('testState')));
+          if (st.pid !== oldPid) swapped = st;
+        }
+      } catch { /* Übergabe läuft noch */ }
+      if (b) { try { b.disconnect(); } catch { /* schon getrennt */ } }
+    }
+    ok(!!swapped, `alte App beendet, neue läuft (PID ${oldPid} → ${swapped && swapped.pid})`);
+    if (swapped) relaunchedPid = swapped.pid;
+  }
 } catch (e) {
   errors.push(`Abbruch: ${e && e.stack || e}`);
 } finally {
   child.kill('SIGTERM');
+  if (relaunchedPid) { try { process.kill(relaunchedPid, 'SIGTERM'); } catch { /* schon beendet */ } }
+  if (newerChild) newerChild.kill('SIGTERM');
+  // Was auch immer übrig ist, darf den Port für den nächsten Lauf nicht blockieren
+  if (process.platform !== 'win32') spawnSync('pkill', ['-f', `remote-debugging-port=${PORT}`]);
   shop.close();
   // Unter Windows kann die App die Dateien noch kurz festhalten
   await sleep(1000);

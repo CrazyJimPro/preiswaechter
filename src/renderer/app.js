@@ -318,9 +318,18 @@ async function refresh() {
 
 async function renderUpdateBanner() {
   const info = await rpc.appInfo();
-  $('update-banner').hidden = !info.updateAvailable;
-  $('update-version').textContent = info.latestVersion || '';
-  $('update-open').onclick = () => rpc.openExternal(info.releasesUrl);
+  $('app-version').textContent = `v${info.version}`;
+  $('app-version').onclick = () => rpc.openReleaseNotes(info.version);
+  $('update-badge').hidden = !info.updateAvailable;
+  $('update-badge').textContent = `Update verfügbar: v${info.latestVersion}`;
+  $('update-badge').onclick = () => rpc.openReleaseNotes(info.latestVersion);
+  $('updated-banner').hidden = !info.updatedTo;
+  $('updated-version').textContent = info.updatedTo || '';
+  $('updated-notes').onclick = () => rpc.openReleaseNotes(info.updatedTo);
+  $('updated-ok').onclick = async () => {
+    await rpc.dismissUpdated();
+    renderUpdateBanner();
+  };
 }
 
 $('search').addEventListener('input', (e) => { state.search = e.target.value; renderList(); });

@@ -92,11 +92,13 @@ Vorhandene Produkte bleiben dabei unverändert, nur ihr Preisverlauf wird ergän
 
 ## Aktualisieren
 
-Gibt es eine neue Version, erscheint oben in der App ein Hinweis mit dem Knopf **Zum Download**.
+Die Versionsnummer steht oben neben dem Namen, ein Klick darauf zeigt die Versionshinweise. Bei jedem Start fragt die App bei GitHub nach. Gibt es etwas Neues, erscheint dort das Abzeichen **Update verfügbar: vX**. Von Hand geht das unter **⚙ Einstellungen** → **Nach Updates suchen**.
 
-1. Beende die App: Rechtsklick auf das Symbol neben der Uhr → **Beenden**.
-2. Lade **Preiswaechter-x86_64.AppImage** herunter und ersetze damit die alte Datei an ihrem Platz.
-3. Mach sie wieder ausführbar (Rechtsklick → **Eigenschaften** → **Zugriffsrechte**) und starte sie.
+1. Klicke auf das Abzeichen und lade auf der Seite unter **Assets** die Datei **Preiswaechter-x86_64.AppImage** herunter.
+2. Beende die App: Rechtsklick auf das Symbol neben der Uhr → **Beenden**.
+3. Ersetze die alte Datei an ihrem Platz durch die neue.
+4. Mach sie wieder ausführbar (Rechtsklick → **Eigenschaften** → **Zugriffsrechte**) und starte sie.
+5. Oben erscheint **Aktualisiert auf Version X**, und neben dem Namen steht die neue Nummer.
 
 Deine Produkte und Einstellungen bleiben erhalten, sie liegen nicht in der Programmdatei.
 
@@ -114,6 +116,7 @@ Deine Daten bleiben dabei liegen. Um auch sie zu löschen, entferne den Ordner `
 | Doppelklick auf die Datei tut nichts | Prüfe den Haken unter **Eigenschaften** → **Zugriffsrechte**. Sonst starte sie im Terminal, siehe unten, dort steht die Fehlermeldung. |
 | Im Terminal: `dlopen(): error loading libfuse.so.2` | Es fehlt ein Paket: `sudo apt install libfuse2t64` (ältere Systeme: `libfuse2`). |
 | Im Terminal: `The SUID sandbox helper binary was found, but is not configured correctly` | Tritt auf normalem Ubuntu ab 24.04 auf, unter Linux Mint normalerweise nicht. Das System sperrt die Sandbox, die die App für Shopseiten braucht. Siehe unten. |
+| Nach dem Update hat sich nichts geändert | Schau auf die Nummer neben dem Namen. Steht dort die alte, läuft noch die alte App: Rechtsklick auf das Symbol neben der Uhr → **Beenden**, dann die neue Datei starten. Ab Version 1.1.0 beendet sich eine ältere laufende App von selbst, wenn du die neuere startest. Prüfe auch, ob du wirklich die neue Datei gestartet hast und nicht eine alte Kopie. |
 | „Kein Preis auf der Seite gefunden“ | Prüfe, ob es eine einzelne Produktseite ist und keine Liste. Sonst **Im Fenster öffnen** beim Produkt bzw. **Seite im Fenster öffnen** beim Hinzufügen. |
 | Falscher Preis erkannt | Produkt löschen und neu hinzufügen. Stimmt der Preis weiter nicht, schick mir den Link. |
 | Preise bleiben alt | Läuft die App? Das Symbol muss im Panel liegen. In der Detailansicht steht „geprüft vor …“ und „nächste Prüfung in …“. |
