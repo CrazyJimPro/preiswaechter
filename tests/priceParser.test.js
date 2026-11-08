@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import '../extension/lib/priceParser.js';
+import '../src/lib/priceParser.js';
 
 const { parsePrice, parseAmount } = globalThis.Preiswaechter;
 

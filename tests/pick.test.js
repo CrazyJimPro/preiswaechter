@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickPrice, nextCheckTime, retryTime, charsetFromContentType, charsetFromHtmlHead } from '../extension/lib/pick.js';
+import { pickPrice, nextCheckTime, retryTime, charsetFromContentType, charsetFromHtmlHead } from '../src/lib/pick.js';
 
 const opt = (price, methods) => ({ price, currency: 'EUR', methods });
 

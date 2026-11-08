@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildBackup, planImport, mergeHistory } from '../extension/lib/backup.js';
+import { buildBackup, planImport, mergeHistory } from '../src/lib/backup.js';
 
 const prod = (id, url, extra) => ({ id, url, name: `Produkt ${id}`, currency: 'EUR', currentPrice: 10, intervalMin: 60, ...extra });
 

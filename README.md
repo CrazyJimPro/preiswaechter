@@ -1,33 +1,11 @@
 # Preiswächter
 
-Browser-Erweiterung für **Firefox und Chrome**, die Produktpreise in Online-Shops verfolgt. Sie läuft komplett im Browser, ohne Server und ohne Konto.
+Desktop-App für **Windows und Linux**, die Produktpreise in Online-Shops verfolgt. Ohne Server, ohne Konto, ohne Browser-Erweiterung: Produktlink einfügen, fertig.
 
-- Preis auf jeder Produktseite mit einem Klick verfolgen
-- Prüfung im Hintergrund, jedes Produkt mit eigenem Intervall
-- Preisverlauf mit Diagramm, Tiefst-, Höchst- und Durchschnittspreis
-- Benachrichtigung bei Zielpreis, Preissenkung und „wieder lieferbar“
-- Datensicherung als Datei
+> **Umbau läuft (v0.5.0, Meilenstein 1 von 4):** Die App kann Produkte per Link hinzufügen, Preise auf Knopfdruck prüfen und den Verlauf anzeigen.
+> Noch nicht enthalten: automatische Prüfung, Benachrichtigungen, Einstellungen, Windows-Installer. Der Rest dieser Datei beschreibt noch die alte Browser-Erweiterung (letzte Version v0.4.0) und wird am Ende des Umbaus ersetzt.
 
 Inspiriert von [PriceGhost](https://github.com/clucraft/PriceGhost) (selbst gehostete Server-App, MIT laut README). Übernommen wurden die Ideen der Preiserkennung; der Code ist neu geschrieben.
-
-**Version 0.4.0**
-
-## Installieren
-
-| Browser | Anleitung |
-|---|---|
-| Google Chrome (auch Edge, Brave, Vivaldi) | [ANLEITUNG-CHROME.md](ANLEITUNG-CHROME.md) |
-| Firefox | [ANLEITUNG-FIREFOX.md](ANLEITUNG-FIREFOX.md) |
-
-Die fertige Erweiterung gibt es als Zip-Datei auf der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases). In Chrome wird der entpackte Ordner einmal als „entpackte Erweiterung“ geladen und bleibt installiert. In Firefox wird er als „temporäres Add-on“ geladen und muss **nach jedem Firefox-Start neu geladen** werden.
-
-> **Wichtig für Firefox – vor dem ersten Laden:** Sonst löscht Firefox beim Beenden alle verfolgten Produkte.
-> In `about:config` diese **beiden** Werte auf `true` setzen (fehlt ein Eintrag: Typ **Boolean** wählen und mit **+** anlegen):
->
-> - `extensions.webextensions.keepStorageOnUninstall`
-> - `extensions.webextensions.keepUuidOnUninstall`
->
-> Nur einer der beiden reicht nicht. Details in [ANLEITUNG-FIREFOX.md](ANLEITUNG-FIREFOX.md), Abschnitt 2.
 
 ## Benutzen
 

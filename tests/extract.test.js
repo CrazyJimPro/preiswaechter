@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import '../extension/lib/priceParser.js';
-import '../extension/lib/extract.js';
+import '../src/lib/priceParser.js';
+import '../src/lib/extract.js';
 
 const { extractFromDocument, normalizeProductUrl } = globalThis.Preiswaechter;
 
@@ -74,6 +74,14 @@ test('Widersprüchliche Quellen → Auswahl, JSON-LD zuerst', () => {
   assert.equal(r.options.length, 2);
   assert.equal(r.options[0].price, 299);
   assert.equal(r.options[1].price, 279);
+});
+
+test('MediaMarkt-Aufbau: BuyAction → ProductGroup, Hauptangebot statt Variante/Zubehör', () => {
+  const r = run('buyaction-group.html', 'https://www.mediamarkt.de/de/product/_kaffeemaschine-1.html');
+  assert.equal(r.price, 39.99);
+  assert.equal(r.currency, 'EUR');
+  assert.equal(r.name, 'Testmarke Kaffeemaschine Schwarz');
+  assert.equal(r.stockStatus, 'in_stock');
 });
 
 test('Seite ohne Preis', () => {

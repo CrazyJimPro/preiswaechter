@@ -1,17 +1,71 @@
 {
   "name": "preiswaechter",
-  "version": "0.4.0",
-  "private": true,
-  "description": "Browser-Erweiterung (Firefox + Chrome) zum Verfolgen von Produktpreisen",
+  "productName": "Preiswächter",
+  "version": "0.5.0",
+  "description": "Verfolgt Produktpreise in Online-Shops, speichert den Preisverlauf und meldet Preissenkungen",
   "type": "module",
+  "main": "src/main/main.js",
+  "desktopName": "preiswaechter.desktop",
+  "author": "CrazyJimPro <c.jung2811@web.de>",
+  "license": "MIT",
+  "homepage": "https://github.com/CrazyJimPro/preiswaechter",
+  "repository": "github:CrazyJimPro/preiswaechter",
+  "private": true,
   "scripts": {
+    "start": "electron .",
     "test": "node --test tests/*.test.js",
-    "lint": "web-ext lint --source-dir extension",
-    "firefox": "web-ext run --source-dir extension",
-    "package": "python3 tools/package.py"
+    "test:app": "node tests/app/run.mjs",
+    "dist:linux": "electron-builder --linux AppImage --publish never",
+    "dist:win": "electron-builder --win nsis --publish never"
+  },
+  "build": {
+    "appId": "de.crazyjimpro.preiswaechter",
+    "productName": "Preiswächter",
+    "artifactName": "Preiswaechter-${version}-${arch}.${ext}",
+    "directories": { "output": "dist" },
+    "files": ["src/**", "assets/**", "package.json"],
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility",
+      "icon": "assets/icon.png",
+      "executableName": "preiswaechter",
+      "synopsis": "Produktpreise verfolgen",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "Preiswächter",
+          "Comment": "Produktpreise verfolgen",
+          "Keywords": "Preis;Preisverlauf;Shop;",
+          "StartupWMClass": "preiswaechter"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "Preiswaechter-${arch}.${ext}"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico",
+      "executableName": "Preiswaechter"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "PreiswaechterSetup.${ext}",
+      "shortcutName": "Preiswächter",
+      "uninstallDisplayName": "Preiswächter",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": ["de_DE"],
+      "language": "1031"
+    }
   },
   "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
     "jsdom": "^25.0.1",
-    "web-ext": "^8.3.0"
+    "puppeteer-core": "^24.43.1"
   }
 }

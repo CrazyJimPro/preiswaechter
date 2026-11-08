@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, DAY } from '../extension/lib/series.js';
+import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, DAY } from '../src/lib/series.js';
 
 const T = Date.UTC(2026, 10, 1);
 const hist = [

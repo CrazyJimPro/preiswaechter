@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { notificationsFor, notificationText } from '../extension/lib/rules.js';
+import { notificationsFor, notificationText } from '../src/lib/rules.js';
 
 const on = { notifications: true };
 const ev = (product, previous) => ({ product: { name: 'Testprodukt', notifyStock: true, ...product }, previous });
