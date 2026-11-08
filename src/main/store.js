@@ -155,6 +155,12 @@ export function createStore(file) {
         changed();
       }
     },
+    removeUnread(id) {
+      if (data.unread.includes(id)) {
+        data.unread = data.unread.filter((x) => x !== id);
+        changed();
+      }
+    },
     clearUnread() {
       if (data.unread.length) {
         data.unread = [];

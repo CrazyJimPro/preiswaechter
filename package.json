@@ -1,7 +1,7 @@
 {
   "name": "preiswaechter",
   "productName": "Preiswächter",
-  "version": "0.5.0",
+  "version": "0.7.0",
   "description": "Verfolgt Produktpreise in Online-Shops, speichert den Preisverlauf und meldet Preissenkungen",
   "type": "module",
   "main": "src/main/main.js",
@@ -20,12 +20,20 @@
   },
   "build": {
     "appId": "de.crazyjimpro.preiswaechter",
-    "productName": "Preiswächter",
+    "productName": "Preiswaechter",
     "artifactName": "Preiswaechter-${version}-${arch}.${ext}",
-    "directories": { "output": "dist" },
-    "files": ["src/**", "assets/**", "package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**",
+      "assets/**",
+      "package.json"
+    ],
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Utility",
       "icon": "assets/icon.png",
       "executableName": "preiswaechter",
@@ -44,7 +52,14 @@
       "artifactName": "Preiswaechter-${arch}.${ext}"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.ico",
       "executableName": "Preiswaechter"
     },
@@ -58,8 +73,11 @@
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
-      "installerLanguages": ["de_DE"],
-      "language": "1031"
+      "installerLanguages": [
+        "de_DE"
+      ],
+      "language": "1031",
+      "include": "build/installer.nsh"
     }
   },
   "devDependencies": {

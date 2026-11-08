@@ -56,3 +56,12 @@ test('Texte', () => {
   const z = notificationText({ kind: 'target', oldPrice: 90, newPrice: 79, target: 80 }, { name: 'X' }, fmt);
   assert.equal(z.title, 'Zielpreis erreicht: 79,00 €');
 });
+
+test('Versionsvergleich', async () => {
+  const { isNewer } = await import('../src/lib/version.js');
+  assert.equal(isNewer('v1.2.0', '1.1.9'), true);
+  assert.equal(isNewer('1.10.0', '1.9.0'), true);
+  assert.equal(isNewer('1.0.0', '1.0.0'), false);
+  assert.equal(isNewer('0.9.9', '1.0.0'), false);
+  assert.equal(isNewer('', '1.0.0'), false);
+});

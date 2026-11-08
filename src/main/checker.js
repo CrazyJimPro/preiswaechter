@@ -1,5 +1,5 @@
 // Preisprüfung: Seite lesen, Produkt und Verlauf aktualisieren.
-import { readPage } from './reader.js';
+import { readPage, readVisible } from './reader.js';
 import { pickPrice, nextCheckTime, retryTime } from '../lib/pick.js';
 
 export function createChecker(store) {
@@ -60,5 +60,42 @@ export function createChecker(store) {
     return applyError(id, 'Kein Preis auf der Seite gefunden', now);
   }
 
-  return { checkProduct, onChecked: (fn) => listeners.add(fn) };
+  /** Seite sichtbar öffnen (Captcha, Cookie-Abfrage); beim Schließen wird der Preis gelesen. */
+  async function checkInWindow(id) {
+    const product = store.getProduct(id);
+    if (!product) return null;
+    const { result, error } = await readVisible(product.url);
+    const now = Date.now();
+    const picked = pickPrice(result, product);
+    if (picked) return applyResult(id, result, picked, now);
+    return applyError(id, error || 'Kein Preis auf der Seite gefunden', now);
+  }
+
+  let running = false;
+
+  /** Alle fälligen Produkte prüfen (höchstens `max` pro Durchlauf, mit Pausen dazwischen). */
+  async function checkDue({ max = 5, all = false } = {}) {
+    if (running) return 0;
+    running = true;
+    try {
+      const now = Date.now();
+      const due = store.listProducts()
+        .filter((p) => !p.paused && (all || (p.nextCheck || 0) <= now))
+        .sort((a, b) => (a.nextCheck || 0) - (b.nextCheck || 0))
+        .slice(0, all ? undefined : max);
+      for (let i = 0; i < due.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 2000 + Math.random() * 3000));
+        try {
+          await checkProduct(due[i].id);
+        } catch (err) {
+          console.error('Prüfung fehlgeschlagen:', due[i].url, err);
+        }
+      }
+      return due.length;
+    } finally {
+      running = false;
+    }
+  }
+
+  return { checkProduct, checkInWindow, checkDue, onChecked: (fn) => listeners.add(fn) };
 }

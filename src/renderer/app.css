@@ -113,3 +113,18 @@ input[type="search"], input[type="text"] { font: inherit; color: var(--text); ba
 .preview-actions { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .preview-actions label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
 .preview-actions input { width: 130px; }
+
+/* Einstellungen */
+.pagetitle { font-size: 22px; text-transform: none; letter-spacing: normal; color: var(--text); margin: 4px 0 16px; }
+.opt-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+label.check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0; cursor: pointer; }
+label.check input { margin-top: 3px; }
+.block { display: block; }
+.import-plan { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--surface); }
+.import-plan p { margin-top: 0; }
+.import-plan button { margin-right: 6px; }
+.update { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; }
+.update button { margin-left: 8px; }
+/* Seit dem letzten Öffnen günstiger geworden */
+.card.fresh { box-shadow: inset 4px 0 0 var(--down); }
+.head-right button { padding: 4px 10px; font-size: 13px; }

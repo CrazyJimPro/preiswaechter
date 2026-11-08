@@ -4,6 +4,7 @@ import { formatPrice, stockLabel, timeAgo, timeUntil, changeText } from '../lib/
 import { RANGES, DAY, seriesInRange, stats, priceChange } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
+import { setupSettings, renderSettings } from './settings.js';
 
 const $ = (id) => document.getElementById(id);
 const fmtFull = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -15,6 +16,8 @@ const state = {
   sort: loadPref('sort', 'new'),
   search: '',
   detailId: null,
+  settingsOpen: false,
+  unread: new Set(),
 };
 
 function loadPref(k, def) {
@@ -49,6 +52,7 @@ function thumb(url, cls) {
 
 async function load() {
   state.products = await rpc.listProducts();
+  state.unread = new Set(await rpc.getUnread());
   const hists = await Promise.all(state.products.map((p) => rpc.getHistory(p.id)));
   state.histories = new Map(state.products.map((p, i) => [p.id, hists[i]]));
 }
@@ -81,7 +85,7 @@ function renderList() {
   const cards = list.map((p) => {
     const ch = changeText(priceChange(p.currentPrice, p.previousPrice), p.currency);
     const meta = [p.shop, stockLabel(p.stockStatus), p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
-    return h('button', { class: 'card', type: 'button', onclick: () => { location.hash = `#/p/${p.id}`; } },
+    return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: () => { location.hash = `#/p/${p.id}`; } },
       thumb(p.imageUrl, 'thumb'),
       h('div', {},
         h('div', { class: 'name', text: p.name, title: p.name }),
@@ -133,6 +137,8 @@ function renderDetail() {
   $('d-shop').onclick = () => rpc.openExternal(p.url);
   $('d-error').hidden = !p.lastError;
   $('d-error').textContent = p.lastError ? `⚠ Letzte Prüfung fehlgeschlagen: ${p.lastError}` : '';
+  // Hilft, wenn der Shop ein Captcha oder eine Cookie-Abfrage zeigt
+  $('d-window').hidden = !p.lastError;
 
   // Zeitraum-Knöpfe
   $('ranges').replaceChildren(...RANGES.map(([k, label]) => h('button', {
@@ -225,6 +231,19 @@ $('d-check').addEventListener('click', async () => {
   }
 });
 
+$('d-window').addEventListener('click', async () => {
+  const btn = $('d-window');
+  btn.disabled = true;
+  btn.textContent = 'Fenster schließen, wenn das Produkt zu sehen ist';
+  try {
+    await rpc.checkInWindow(state.detailId);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Im Fenster öffnen';
+    await refresh();
+  }
+});
+
 $('d-delete').addEventListener('click', async () => {
   const btn = $('d-delete');
   if (!btn.dataset.armed) {
@@ -244,13 +263,19 @@ $('d-delete').addEventListener('click', async () => {
 function route() {
   const m = /^#\/p\/([\w-]+)$/.exec(location.hash);
   state.detailId = m ? m[1] : null;
-  $('list-view').hidden = !!state.detailId;
+  state.settingsOpen = location.hash === '#/einstellungen';
+  $('list-view').hidden = !!state.detailId || state.settingsOpen;
   $('detail-view').hidden = !state.detailId;
+  $('settings-view').hidden = !state.settingsOpen;
+  formFor = null;
   if (state.detailId) {
+    rpc.markRead(state.detailId);
     renderDetail();
+  } else if (state.settingsOpen) {
+    document.title = 'Einstellungen – Preiswächter';
+    renderSettings();
   } else {
-    formFor = null;
-    document.title = 'Preiswächter – Übersicht';
+    document.title = 'Preiswächter';
     renderList();
   }
   window.scrollTo(0, 0);
@@ -259,7 +284,15 @@ function route() {
 async function refresh() {
   await load();
   if (state.detailId) renderDetail();
-  else renderList();
+  else if (!state.settingsOpen) renderList();
+  renderUpdateBanner();
+}
+
+async function renderUpdateBanner() {
+  const info = await rpc.appInfo();
+  $('update-banner').hidden = !info.updateAvailable;
+  $('update-version').textContent = info.latestVersion || '';
+  $('update-open').onclick = () => rpc.openExternal(info.releasesUrl);
 }
 
 $('search').addEventListener('input', (e) => { state.search = e.target.value; renderList(); });
@@ -275,8 +308,28 @@ onChanged(() => {
 });
 
 // Zeitangaben ("vor 3 Min.") aktuell halten
-setInterval(() => { if (!document.hidden) (state.detailId ? renderDetail : renderList)(); }, 60 * 1000);
+setInterval(() => {
+  if (document.hidden || state.settingsOpen) return;
+  (state.detailId ? renderDetail : renderList)();
+}, 60 * 1000);
+
+window.pw.onOpenProduct((id) => { location.hash = `#/p/${id}`; });
+
+$('check-all').addEventListener('click', async () => {
+  const btn = $('check-all');
+  btn.disabled = true;
+  btn.textContent = 'Wird geprüft …';
+  try {
+    await rpc.checkAll();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Alle jetzt prüfen';
+    await refresh();
+  }
+});
 
 setupAddForm();
+setupSettings();
 await load();
 route();
+renderUpdateBanner();

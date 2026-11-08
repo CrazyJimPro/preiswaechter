@@ -20,3 +20,12 @@ d.text((410, 516), "€", fill=TEAL, font=ImageFont.truetype(FONT, 380), anchor=
 img.resize((512, 512), Image.LANCZOS).save(OUT / "icon.png")
 img.resize((256, 256), Image.LANCZOS).save(OUT / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
 img.resize((64, 64), Image.LANCZOS).save(OUT / "tray.png")
+
+# Infobereich mit rotem Punkt: Es gibt etwas Neues
+neu = img.copy()
+dn = ImageDraw.Draw(neu)
+dn.ellipse((600, 600, 1010, 1010), fill=(255, 255, 255, 255))
+dn.ellipse((640, 640, 970, 970), fill=(220, 38, 38, 255))
+neu.resize((64, 64), Image.LANCZOS).save(OUT / "tray-neu.png")
+neu.resize((64, 64), Image.LANCZOS).save(OUT / "tray-neu.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64)])
+img.resize((64, 64), Image.LANCZOS).save(OUT / "tray.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64)])

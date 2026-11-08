@@ -10,10 +10,19 @@
 <body>
   <header class="top">
     <a href="#" class="brand"><h1>Preiswächter</h1></a>
-    <span class="head-right"><span id="summary" class="muted"></span></span>
+    <span class="head-right">
+      <span id="summary" class="muted"></span>
+      <button id="check-all" type="button">Alle jetzt prüfen</button>
+      <a id="open-settings" href="#/einstellungen">⚙ Einstellungen</a>
+    </span>
   </header>
 
   <main>
+    <p id="update-banner" class="update" hidden>
+      Eine neue Version ist da: <strong id="update-version"></strong>.
+      <button id="update-open" type="button">Zum Download</button>
+    </p>
+
     <!-- Liste aller Produkte -->
     <section id="list-view">
       <form id="add-form" class="add-form">
@@ -49,6 +58,7 @@
           <div class="actions">
             <button id="d-shop" type="button">Zum Shop ↗</button>
             <button id="d-check">Jetzt prüfen</button>
+            <button id="d-window" type="button" hidden title="Für Captcha oder Cookie-Abfrage">Im Fenster öffnen</button>
           </div>
           <p id="d-error" class="warn" hidden></p>
         </div>
@@ -95,6 +105,62 @@
       <div class="panel danger">
         <button id="d-delete">Produkt nicht mehr verfolgen</button>
         <span class="muted small">Löscht auch den Preisverlauf.</span>
+      </div>
+    </section>
+
+    <!-- Einstellungen -->
+    <section id="settings-view" hidden>
+      <a href="#" class="back">← Alle Produkte</a>
+      <h2 class="pagetitle">Einstellungen</h2>
+
+      <div class="panel">
+        <h3>Prüfung</h3>
+        <div class="opt-row">
+          <label for="o-interval">Neue Produkte prüfen alle</label>
+          <select id="o-interval"></select>
+          <button id="o-apply-all" type="button">Für alle Produkte übernehmen</button>
+          <span id="o-apply-result" class="muted small"></span>
+        </div>
+        <label class="check"><input type="checkbox" id="o-autostart">
+          <span>Beim Anmelden automatisch starten
+            <span class="muted small block">Geprüft wird nur, solange die App läuft. Sie liegt dann unsichtbar im Infobereich neben der Uhr.</span></span>
+        </label>
+      </div>
+
+      <div class="panel">
+        <h3>Benachrichtigungen</h3>
+        <label class="check"><input type="checkbox" id="o-notifications">
+          <span>Benachrichtigen bei Zielpreis, Preissenkung und „wieder lieferbar“
+            <span class="muted small block">Zielpreis und ab wie viel Prozent gemeldet wird, stellst du beim jeweiligen Produkt ein.</span></span>
+        </label>
+        <div class="opt-row">
+          <button id="o-test" type="button">Testbenachrichtigung senden</button>
+          <span id="o-test-result" class="muted small"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Datensicherung</h3>
+        <p class="muted small">Die Sicherung enthält alle Produkte mit Preisverlauf und Einstellungen als Datei, zum Beispiel für einen Umzug auf einen anderen Rechner.</p>
+        <div class="opt-row">
+          <button id="o-export" type="button" class="primary">Sicherung speichern …</button>
+          <button id="o-import" type="button">Sicherung einspielen …</button>
+        </div>
+        <div id="o-import-plan" class="import-plan" hidden>
+          <p id="o-import-summary"></p>
+          <button id="o-import-go" type="button" class="primary">Jetzt einspielen</button>
+          <button id="o-import-cancel" type="button">Abbrechen</button>
+        </div>
+        <p id="o-backup-result" class="muted small" hidden></p>
+      </div>
+
+      <div class="panel">
+        <h3>Über die App</h3>
+        <p class="muted small" id="o-version"></p>
+        <div class="opt-row">
+          <button id="o-folder" type="button">Datenordner öffnen</button>
+          <button id="o-remove" type="button" hidden>Aus dem Startmenü entfernen und beenden</button>
+        </div>
       </div>
     </section>
   </main>

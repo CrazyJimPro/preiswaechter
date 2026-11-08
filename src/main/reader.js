@@ -57,6 +57,47 @@ export function isWebUrl(url) {
 }
 
 /**
+ * Öffnet die Seite sichtbar, damit der User ein Captcha oder eine Cookie-Abfrage erledigen
+ * kann. Beim Schließen des Fensters wird die dann angezeigte Seite gelesen. Der Speicherbereich
+ * ist derselbe wie beim unsichtbaren Lesen, das Erledigte gilt also auch für spätere Prüfungen.
+ */
+export function readVisible(url) {
+  if (!isWebUrl(url)) return Promise.resolve({ result: null, error: 'Das ist keine gültige Internetadresse.' });
+  prepareSession();
+  return new Promise((resolve) => {
+    const win = new BrowserWindow({
+      show: !process.env.PREISWAECHTER_HIDDEN,
+      width: 1100,
+      height: 800,
+      title: 'Seite erledigen, dann dieses Fenster schließen',
+      autoHideMenuBar: true,
+      webPreferences: { partition: PARTITION, sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    win.setMenu(null);
+    const wc = win.webContents;
+    // Titel bleibt die Anleitung, auch wenn die Seite ihren eigenen setzt
+    win.on('page-title-updated', (event) => event.preventDefault());
+    wc.setWindowOpenHandler(({ url: target }) => {
+      if (isWebUrl(target)) wc.loadURL(target).catch(() => {}); // im selben Fenster bleiben
+      return { action: 'deny' };
+    });
+    wc.on('will-navigate', (event, target) => { if (!isWebUrl(target)) event.preventDefault(); });
+    let done = false;
+    win.on('close', (event) => {
+      if (done) return;
+      done = true;
+      event.preventDefault();
+      wc.executeJavaScriptInIsolatedWorld(ISOLATED_WORLD, [{ code: EXTRACT_CODE }])
+        .then((result) => resolve({ result, error: null }), () => resolve({ result: null, error: 'Die Seite konnte nicht gelesen werden.' }))
+        .finally(() => { if (!win.isDestroyed()) win.destroy(); });
+    });
+    // Schließt sich die Seite selbst, kommt kein abfangbares close: Dann nichts zu lesen, aber nie hängen
+    win.on('closed', () => resolve({ result: null, error: 'Das Fenster wurde geschlossen, bevor die Seite gelesen werden konnte.' }));
+    wc.loadURL(url).catch(() => {});
+  });
+}
+
+/**
  * Öffnet die Seite unsichtbar und liefert das Erkennungsergebnis.
  * @param {string} url
  * @param {object} [product] vorhandenes Produkt – entscheidet bei mehreren Preisen mit

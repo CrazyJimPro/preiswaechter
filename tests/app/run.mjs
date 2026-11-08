@@ -32,6 +32,9 @@ const shop = http.createServer((req, res) => {
   if (route === '/konflikt.html') {
     return send(200, `<!doctype html><html><head><title>K</title><script type="application/ld+json">{"@type":"Product","name":"Monitor","offers":{"price":"299.00","priceCurrency":"EUR"}}</script><meta property="product:price:amount" content="279.00"></head><body><h1>Monitor</h1></body></html>`);
   }
+  if (route === '/konflikt2.html') {
+    return send(200, `<!doctype html><html><head><title>K2</title><script type="application/ld+json">{"@type":"Product","name":"Fensterprodukt","offers":{"price":"${state.price}","priceCurrency":"EUR"}}</script></head><body><h1>F</h1></body></html>`);
+  }
   if (route === '/blog.html') return send(200, '<!doctype html><html><head><title>Blog</title></head><body><h1>Text ohne Preis</h1></body></html>');
   return send(404, 'weg');
 });
@@ -42,7 +45,15 @@ const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-app-'));
 const [bin, ...binArgs] = process.argv.slice(2);
 const cmd = bin || path.join(ROOT, 'node_modules/.bin/electron');
 const args = [...(bin ? binArgs : [ROOT]), `--remote-debugging-port=${PORT}`];
-const child = spawn(cmd, args, { env: { ...process.env, PREISWAECHTER_USERDATA: userData, ...(SHOTS_ON ? {} : { PREISWAECHTER_HIDDEN: '1' }) }, stdio: ['ignore', 'pipe', 'pipe'] });
+const child = spawn(cmd, args, { env: {
+  ...process.env,
+  PREISWAECHTER_USERDATA: userData,
+  PREISWAECHTER_TEST: '1',
+  // Autostart und Startmenü-Eintrag nicht im echten Profil anlegen
+  XDG_CONFIG_HOME: path.join(userData, 'xdg-config'),
+  XDG_DATA_HOME: path.join(userData, 'xdg-data'),
+  ...(SHOTS_ON ? {} : { PREISWAECHTER_HIDDEN: '1' }),
+}, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
 child.stdout.on('data', (d) => { log += d; });
 child.stderr.on('data', (d) => { log += d; });
@@ -161,14 +172,122 @@ try {
   await sleep(300);
   ok(!(await productBy('p.html')), 'Produkt gelöscht');
   await shot('uebersicht');
+
+  console.log('Benachrichtigungen');
+  const added = await call('addProduct', { url: `${BASE}/p.html`, name: 'Monitor', price: 100, currency: 'EUR', stockStatus: 'out_of_stock' });
+  await call('updateProduct', added.id, { targetPrice: 80, dropThreshold: 10 });
+  const seen = async () => (await call('testState')).notifications.map((n) => n.title);
+  const before = (await seen()).length;
+  state.price = 95;
+  await call('checkNow', added.id);
+  let titles = (await seen()).slice(before);
+  ok(titles.length === 1 && titles[0] === 'Wieder lieferbar', `100 → 95 (−5 %, Schwelle 10 %) + wieder lieferbar: nur „Wieder lieferbar“ (${titles})`);
+  state.price = 85;
+  await call('checkNow', added.id);
+  titles = (await seen()).slice(before);
+  ok(titles.at(-1) === 'Preis gesunken um 10,5 %', `95 → 85: ${titles.at(-1)}`);
+  state.price = 79;
+  await call('checkNow', added.id);
+  titles = (await seen()).slice(before);
+  ok(titles.at(-1).startsWith('Zielpreis erreicht'), `85 → 79 unter Ziel 80: ${titles.at(-1)}`);
+
+  console.log('Markierung „günstiger geworden“');
+  ok((await call('getUnread')).includes(added.id), 'Produkt als neu gemerkt');
+  await page.waitForFunction(() => document.querySelector('.card.fresh'), { timeout: 3000 });
+  ok(true, 'Karte markiert');
+  await page.evaluate((id) => { location.hash = `#/p/${id}`; }, added.id);
+  await sleep(300);
+  ok(!(await call('getUnread')).includes(added.id), 'Detailansicht öffnen setzt zurück');
+  await page.evaluate(() => { location.hash = ''; });
+  await sleep(200);
+
+  console.log('Automatische Prüfung (bis 90 s)');
+  state.price = 70;
+  await call('updateProduct', added.id, { nextCheck: 0 });
+  const t0 = Date.now();
+  let auto = false;
+  for (let i = 0; i < 90 && !auto; i++) { await sleep(1000); auto = (await productBy('p.html')).currentPrice === 70; }
+  ok(auto, `Preis 70 von selbst nach ${Math.round((Date.now() - t0) / 1000)} s`);
+  const after = await productBy('p.html');
+  ok(after.nextCheck > Date.now() + 50 * 60e3, 'nächste Prüfung in ca. 1 Stunde');
+  await call('updateProduct', added.id, { paused: true, nextCheck: 0 });
+  state.price = 65;
+  await call('checkAll');
+  ok((await productBy('p.html')).currentPrice === 70, 'pausiertes Produkt wird übersprungen');
+  await call('updateProduct', added.id, { paused: false, nextCheck: Date.now() + 3600e3 });
+
+  console.log('Einstellungen');
+  await page.evaluate(() => { location.hash = '#/einstellungen'; });
+  await page.waitForFunction(() => !document.getElementById('settings-view').hidden && document.querySelectorAll('#o-interval option').length > 0, { timeout: 3000 });
+  ok(/Version \d/.test(await page.evaluate(() => document.getElementById('o-version').textContent)), 'Version angezeigt');
+  await shot('einstellungen');
+  await page.evaluate(() => document.getElementById('o-notifications').click());
+  await sleep(100);
+  ok((await call('getSettings')).notifications === false, 'Benachrichtigungen aus');
+  const countOff = (await seen()).length;
+  state.price = 60;
+  await call('checkNow', added.id);
+  ok((await seen()).length === countOff, 'ausgeschaltet: keine neue Meldung');
+  await page.evaluate(() => document.getElementById('o-notifications').click());
+  await page.evaluate(() => document.getElementById('o-test').click());
+  await sleep(200);
+  ok((await seen()).at(-1) === 'Preiswächter: Test', 'Testbenachrichtigung');
+  await page.evaluate(() => { const s = document.getElementById('o-interval'); s.value = '360'; s.dispatchEvent(new Event('change')); });
+  await page.evaluate(() => document.getElementById('o-apply-all').click());
+  await sleep(300);
+  ok((await call('getSettings')).defaultIntervalMin === 360 && (await productBy('p.html')).intervalMin === 360, 'Intervall für alle übernommen');
+  const auto1 = await page.evaluate(() => window.pw.call('setAutostart', true));
+  ok(auto1 === true && (await call('testState')).autostart === true, 'Autostart an');
+  const auto2 = await page.evaluate(() => window.pw.call('setAutostart', false));
+  ok(auto2 === false, 'Autostart aus');
+
+  console.log('Sicherung');
+  const backupFile = path.join(userData, 'sicherung.json');
+  await call('exportBackup', backupFile);
+  const backup = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+  const countProducts = (await call('listProducts')).length;
+  ok(backup.app === 'preiswaechter' && backup.products.length === countProducts, `Sicherung mit ${countProducts} Produkten`);
+  for (const x of await call('listProducts')) await call('deleteProduct', x.id);
+  let plan = await call('pickBackup', backupFile);
+  ok(plan.add === countProducts, `Vorschau: ${plan.add} neue Produkte`);
+  await call('applyImport');
+  const back = await productBy('p.html');
+  ok((await call('listProducts')).length === countProducts && back.targetPrice === 80 && (await call('getHistory', back.id)).length > 1, 'wiederhergestellt mit Verlauf und Zielpreis');
+  plan = await call('pickBackup', backupFile);
+  ok(plan.add === 0 && plan.merge === 0, 'zweites Einspielen: nichts doppelt');
+  fs.writeFileSync(`${backupFile}.x`, '{"foo":1}');
+  ok(!!(await call('pickBackup', `${backupFile}.x`)).error, 'fremde Datei abgelehnt');
+  await page.evaluate(() => { location.hash = ''; });
+
+  console.log('Sichtbares Fenster (Captcha)');
+  state.price = 55;
+  const shown = page.evaluate((u) => window.pw.call('analyseInWindow', u), `${BASE}/konflikt2.html`);
+  let extra = null;
+  for (let i = 0; i < 40 && !extra; i++) {
+    extra = (await browser.pages()).find((x) => x.url().includes('konflikt2'));
+    if (!extra) await sleep(250);
+  }
+  ok(!!extra, 'Fenster geöffnet');
+  await sleep(500);
+  await call('closeOtherWindows');
+  const shownRes = await shown;
+  ok(shownRes.result && shownRes.result.price === 55, `beim Schließen gelesen (${shownRes.result && shownRes.result.price})`);
+
   ok(pageErrors.length === 0, `keine Skriptfehler (${pageErrors.join('; ')})`);
+
+  console.log('Hintergrund');
+  ok((await call('testState')).windowOpen === true, 'Fenster offen');
+  page.evaluate(() => window.pw.call('closeWindow')).catch(() => {});
+  await sleep(1500);
+  if (process.env.OHNE_INFOBEREICH) console.log('  (ohne Infobereich: übersprungen)');
+  else ok(child.exitCode == null && child.signalCode == null, 'App läuft nach dem Schließen des Fensters weiter');
 
   console.log('Daten überleben den Neustart');
   browser.disconnect();
   child.kill('SIGTERM');
   for (let i = 0; i < 20 && child.exitCode == null && child.signalCode == null; i++) await sleep(250);
   const saved = JSON.parse(fs.readFileSync(path.join(userData, 'daten.json'), 'utf8'));
-  ok(saved.ids.length === 2, `${saved.ids.length} Produkte in der Datei`);
+  ok(saved.ids.length === 3, `${saved.ids.length} Produkte in der Datei`);
 } catch (e) {
   errors.push(`Abbruch: ${e && e.stack || e}`);
 } finally {

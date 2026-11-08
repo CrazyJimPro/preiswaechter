@@ -80,22 +80,40 @@ function renderPreview(info) {
       h('button', { type: 'button', text: 'Abbrechen', onclick: closeBox }))))); 
 }
 
+function showResult({ result, error, status, tracked }, url) {
+  if (tracked) {
+    showBox(h('p', {}, `„${tracked.name}“ wird bereits verfolgt. `,
+      h('a', { href: `#/p/${tracked.id}`, text: 'Zum Preisverlauf', onclick: closeBox })));
+  } else if (result && result.options.length) {
+    renderPreview(result);
+  } else {
+    const why = error || (status >= 400 ? `Der Shop antwortet mit HTTP ${status}.` : 'Auf dieser Seite wurde kein Preis gefunden. Ist es eine einzelne Produktseite?');
+    showBox(
+      h('p', { class: 'warn', text: why }),
+      h('p', { class: 'muted small', text: 'Manche Shops zeigen zuerst ein Captcha oder eine Cookie-Abfrage. Öffne die Seite im Fenster, erledige das und schließe das Fenster wieder, sobald das Produkt zu sehen ist.' }),
+      h('button', {
+        id: 'add-window', type: 'button', text: 'Seite im Fenster öffnen',
+        onclick: async (e) => {
+          e.target.disabled = true;
+          e.target.textContent = 'Fenster schließen, wenn das Produkt zu sehen ist';
+          try {
+            showResult(await rpc.analyseInWindow(url), url);
+          } catch (err) {
+            showBox(h('p', { class: 'warn', text: `Fehler: ${err.message}` }));
+          }
+        },
+      }),
+    );
+  }
+}
+
 async function analyse(url) {
   const go = $('add-go');
   go.disabled = true;
   $('add-hint').hidden = true;
   showBox(h('p', { class: 'muted', text: 'Seite wird gelesen … das kann bis zu 30 Sekunden dauern.' }));
   try {
-    const { result, error, status, tracked } = await rpc.analyseUrl(url);
-    if (tracked) {
-      showBox(h('p', {}, `„${tracked.name}“ wird bereits verfolgt. `,
-        h('a', { href: `#/p/${tracked.id}`, text: 'Zum Preisverlauf', onclick: closeBox })));
-    } else if (result && result.options.length) {
-      renderPreview(result);
-    } else {
-      const why = error || (status >= 400 ? `Der Shop antwortet mit HTTP ${status}.` : 'Auf dieser Seite wurde kein Preis gefunden. Ist es eine einzelne Produktseite?');
-      showBox(h('p', { class: 'warn', text: why }));
-    }
+    showResult(await rpc.analyseUrl(url), url);
   } catch (err) {
     showBox(h('p', { class: 'warn', text: `Fehler: ${err.message}` }));
   } finally {
