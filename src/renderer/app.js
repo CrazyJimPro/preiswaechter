@@ -1,12 +1,13 @@
 import { rpc, onChanged } from './rpc.js';
 import { INTERVALS } from '../lib/constants.js';
 import { formatPrice, stockLabel, timeAgo, timeUntil, changeText } from '../lib/format.js';
-import { RANGES, DAY, seriesInRange, stats, priceChange } from '../lib/series.js';
+import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
 import { setupSettings, renderSettings } from './settings.js';
 
 const $ = (id) => document.getElementById(id);
+const fmtDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const fmtFull = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 const state = {
@@ -73,6 +74,13 @@ function sortProducts(list) {
       const pct = (p) => (priceChange(p.currentPrice, p.previousPrice) || { pct: 0 }).pct;
       return arr.sort((a, b) => pct(a) - pct(b));
     }
+    case 'since': {
+      const pct = (p) => {
+        const since = sinceAdded(p, state.histories.get(p.id));
+        return since && since.change ? since.change.pct : 0;
+      };
+      return arr.sort((a, b) => pct(a) - pct(b));
+    }
     default: return arr; // Speicherreihenfolge = zuletzt hinzugefügt zuerst
   }
 }
@@ -84,6 +92,8 @@ function renderList() {
   );
   const cards = list.map((p) => {
     const ch = changeText(priceChange(p.currentPrice, p.previousPrice), p.currency);
+    const since = sinceAdded(p, state.histories.get(p.id));
+    const sinceCh = since && changeText(since.change, p.currency);
     const meta = [p.shop, stockLabel(p.stockStatus), p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
     return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: () => { location.hash = `#/p/${p.id}`; } },
       thumb(p.imageUrl, 'thumb'),
@@ -93,10 +103,14 @@ function renderList() {
           p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
           meta),
         h('div', { class: 'bottom' },
-          h('div', {},
-            h('div', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
-            ch ? h('div', { class: `change ${ch.dir}`, text: ch.text }) : h('div', { class: 'change muted', text: `geprüft ${timeAgo(p.lastChecked)}` })),
+          h('div', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
           sparkline(state.histories.get(p.id), { from: Date.now() - 30 * DAY, width: 96, height: 32, label: 'Preisverlauf der letzten 30 Tage' })),
+        ch && (!sinceCh || ch.text !== sinceCh.text)
+          ? h('div', { class: `change ${ch.dir}`, text: `Zuletzt: ${ch.text}` })
+          : null,
+        since
+          ? h('div', { class: `change ${sinceCh ? sinceCh.dir : 'muted'}`, title: `Beim Hinzufügen: ${formatPrice(since.price, p.currency)}`, text: sinceCh ? `Seit Hinzufügen: ${sinceCh.text}` : 'Seit Hinzufügen unverändert' })
+          : h('div', { class: 'change muted', text: `geprüft ${timeAgo(p.lastChecked)}` }),
       ));
   });
   $('cards').replaceChildren(...cards);
@@ -132,8 +146,22 @@ function renderDetail() {
   $('d-meta').textContent = meta.join(' · ');
   $('d-price').textContent = formatPrice(p.currentPrice, p.currency);
   const ch = changeText(priceChange(p.currentPrice, p.previousPrice), p.currency);
-  $('d-change').textContent = ch ? `${ch.text} seit ${fmtFull.format(new Date(p.lastChange))}` : '';
+  const since = sinceAdded(p, hist);
+  // Gab es erst eine Änderung, sagt die Zeile „seit dem Hinzufügen“ dasselbe
+  const sameAsSince = ch && since && since.change && ch.text === changeText(since.change, p.currency).text;
+  $('d-change').textContent = ch && !sameAsSince ? `${ch.text} seit ${fmtFull.format(new Date(p.lastChange))}` : '';
   $('d-change').className = ch ? ch.dir : '';
+  $('d-since').hidden = !since;
+  if (since) {
+    const sinceCh = changeText(since.change, p.currency);
+    const when = since.t ? ` am ${fmtDate.format(new Date(since.t))}` : '';
+    $('d-since').replaceChildren(
+      `Beim Hinzufügen${when}: `,
+      h('strong', { text: formatPrice(since.price, p.currency) }),
+      ' · ',
+      sinceCh ? h('span', { class: sinceCh.dir, text: `seitdem ${sinceCh.text}` }) : 'seitdem unverändert',
+    );
+  }
   $('d-shop').onclick = () => rpc.openExternal(p.url);
   $('d-error').hidden = !p.lastError;
   $('d-error').textContent = p.lastError ? `⚠ Letzte Prüfung fehlgeschlagen: ${p.lastError}` : '';

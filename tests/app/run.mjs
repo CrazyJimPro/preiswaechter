@@ -154,11 +154,21 @@ try {
   const leftover = (await browser.pages()).filter((x) => x.url().includes(BASE)).length;
   ok(leftover === 0, 'keine versteckten Fenster übrig');
 
+  console.log('Seit dem Hinzufügen');
+  ok((await productBy('p.html')).addedPrice === 549, 'Preis beim Hinzufügen gemerkt: 549');
+  await page.waitForFunction(() => [...document.querySelectorAll('.card')].some((c) => c.innerText.includes('Seit Hinzufügen: ▼ 105,00')), { timeout: 3000 }).then(() => ok(true, 'Karte: Seit Hinzufügen ▼ 105,00 €'), () => ok(false, 'Karte: Seit Hinzufügen ▼ 105,00 €'));
+  ok(await page.evaluate(() => [...document.querySelectorAll('.card')].some((c) => c.innerText.includes('Seit Hinzufügen unverändert'))), 'Karte: unverändert beim anderen Produkt');
+  await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'since'; o.dispatchEvent(new Event('change')); });
+  ok((await page.evaluate(() => document.querySelector('.card .name').textContent)).includes('Kaffeevollautomat'), 'Sortierung: größte Ersparnis zuerst');
+  await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'new'; o.dispatchEvent(new Event('change')); });
+
   console.log('Detailansicht');
   await page.evaluate((id) => { location.hash = `#/p/${id}`; }, p.id);
   await page.waitForSelector('#chart svg', { timeout: 5000 });
   ok((await page.evaluate(() => document.getElementById('d-price').textContent)).includes('444,00'), 'Preis im Kopf');
-  ok((await page.evaluate(() => document.getElementById('d-change').textContent)).includes('▼ 105,00'), 'Änderung ▼ 105,00 €');
+  ok((await page.evaluate(() => document.getElementById('d-change').textContent)) === '', 'bei nur einer Änderung nichts doppelt');
+  const sinceLine = await page.evaluate(() => document.getElementById('d-since').textContent);
+  ok(sinceLine.includes('549,00') && sinceLine.includes('▼ 105,00'), `Kopf: ${sinceLine}`);
   await shot('detail');
   await page.evaluate(() => {
     const f = document.getElementById('settings');
@@ -286,7 +296,7 @@ try {
   ok(plan.add === countProducts, `Vorschau: ${plan.add} neue Produkte`);
   await call('applyImport');
   const back = await productBy('p.html');
-  ok((await call('listProducts')).length === countProducts && back.targetPrice === 80 && (await call('getHistory', back.id)).length > 1, 'wiederhergestellt mit Verlauf und Zielpreis');
+  ok((await call('listProducts')).length === countProducts && back.targetPrice === 80 && back.addedPrice === 100 && (await call('getHistory', back.id)).length > 1, 'wiederhergestellt mit Verlauf, Zielpreis und Preis beim Hinzufügen');
   plan = await call('pickBackup', backupFile);
   ok(plan.add === 0 && plan.merge === 0, 'zweites Einspielen: nichts doppelt');
   fs.writeFileSync(`${backupFile}.x`, '{"foo":1}');

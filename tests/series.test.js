@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, DAY } from '../src/lib/series.js';
+import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, sinceAdded, DAY } from '../src/lib/series.js';
 
 const T = Date.UTC(2026, 10, 1);
 const hist = [
@@ -51,4 +51,16 @@ test('priceChange', () => {
   assert.deepEqual(priceChange(90, 100), { diff: -10, pct: -10 });
   assert.equal(priceChange(100, 100), null);
   assert.equal(priceChange(100, null), null);
+});
+
+test('sinceAdded: gemerkter Preis, sonst erster Verlaufspunkt', () => {
+  const p = { addedPrice: 100, currentPrice: 90, createdAt: T };
+  assert.deepEqual(sinceAdded(p, hist), { price: 100, t: T, change: { diff: -10, pct: -10 } });
+  // ältere Produkte ohne addedPrice
+  const old = sinceAdded({ currentPrice: 90 }, [{ t: T + 5, price: 95 }, { t: T, price: 120 }]);
+  assert.equal(old.price, 120);
+  assert.equal(old.t, T);
+  assert.equal(old.change.diff, -30);
+  assert.equal(sinceAdded({ addedPrice: 90, currentPrice: 90 }, hist).change, null);
+  assert.equal(sinceAdded({ currentPrice: 90 }, []), null);
 });

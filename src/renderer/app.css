@@ -128,3 +128,7 @@ label.check input { margin-top: 3px; }
 /* Seit dem letzten Öffnen günstiger geworden */
 .card.fresh { box-shadow: inset 4px 0 0 var(--down); }
 .head-right button { padding: 4px 10px; font-size: 13px; }
+
+/* Was hat sich seit dem Hinzufügen getan? */
+.since-line { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+.since-line strong { color: var(--text); }

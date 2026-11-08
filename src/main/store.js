@@ -112,6 +112,7 @@ export function createStore(file) {
         targetPrice: info.targetPrice ?? null,
         // Bei mehreren gefundenen Preisen: die Methode(n), deren Preis gewählt wurde
         preferredMethods: Array.isArray(info.preferredMethods) ? info.preferredMethods : [],
+        addedPrice: info.price ?? null, // Preis beim Hinzufügen, bleibt für immer gleich
         previousPrice: null,
         lastChange: null,
         errorCount: 0,

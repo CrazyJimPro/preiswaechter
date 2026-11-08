@@ -107,3 +107,19 @@ export function priceChange(current, previous) {
   const diff = Math.round((current - previous) * 100) / 100;
   return { diff, pct: Math.round((diff / previous) * 1000) / 10 };
 }
+
+/**
+ * Was hat sich seit dem Hinzufügen getan? Produkte aus älteren Versionen haben kein
+ * addedPrice, dort gilt der erste Punkt im Verlauf.
+ * @returns {{price: number, t: number|null, change: {diff: number, pct: number}|null}|null}
+ */
+export function sinceAdded(product, history) {
+  const first = (history || []).reduce((a, b) => (!a || b.t < a.t ? b : a), null);
+  const price = product.addedPrice ?? (first ? first.price : null);
+  if (price == null) return null;
+  return {
+    price,
+    t: product.createdAt ?? (first ? first.t : null),
+    change: priceChange(product.currentPrice, price),
+  };
+}

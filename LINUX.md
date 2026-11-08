@@ -40,6 +40,8 @@ Manche Shops zeigen zuerst ein Captcha oder eine Cookie-Abfrage. Dann erscheint 
 3. Fahre mit der Maus über das Diagramm, dann siehst du den Preis zu jedem Zeitpunkt.
 4. **Verlauf als Tabelle** listet jede Messung auf, **Zum Shop** öffnet die Seite in deinem Browser.
 
+Die App merkt sich den Preis beim Hinzufügen. Oben in der Detailansicht und auf jeder Karte siehst du, was sich seitdem getan hat, zum Beispiel **Seit Hinzufügen: ▼ 105,00 € (−19,1 %)**. Über **Sortieren** → **Größte Ersparnis** stehen die besten Treffer oben.
+
 In der Übersicht heißt **▼** günstiger und **▲** teurer. Ein grüner Strich links an der Karte markiert Produkte, die günstiger geworden sind, seit du zuletzt nachgesehen hast.
 
 ## Zielpreis und Benachrichtigungen einstellen

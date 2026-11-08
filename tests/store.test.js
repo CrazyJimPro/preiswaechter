@@ -64,3 +64,12 @@ test('Löschen entfernt Verlauf und Markierung', () => {
   assert.deepEqual(s.getUnread(), []);
   s.flush();
 });
+
+test('Preis beim Hinzufügen bleibt, auch wenn sich der aktuelle ändert', () => {
+  const s = createStore(tmpFile());
+  const p = s.addProduct(info);
+  assert.equal(p.addedPrice, 10);
+  s.updateProduct(p.id, { currentPrice: 7 });
+  assert.equal(s.getProduct(p.id).addedPrice, 10);
+  s.flush();
+});

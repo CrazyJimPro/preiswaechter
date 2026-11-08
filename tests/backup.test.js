@@ -58,3 +58,9 @@ test('Verlauf: ungültige Punkte fliegen raus, Bild-URL nur http(s)', () => {
 test('mergeHistory', () => {
   assert.deepEqual(mergeHistory([{ t: 1 }, { t: 3 }], [{ t: 2 }, { t: 3 }]).map((x) => x.t), [1, 2, 3]);
 });
+
+test('Preis beim Hinzufügen übersteht die Sicherung', () => {
+  const data = buildBackup({ settings: {}, products: [prod('a', 'https://shop.de/a', { addedPrice: 15, currentPrice: 10 })], histories: [[]] }, 0);
+  const plan = planImport(JSON.parse(JSON.stringify(data)), { products: [], histories: [] });
+  assert.equal(plan.add[0].product.addedPrice, 15);
+});
