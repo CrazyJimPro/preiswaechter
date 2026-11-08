@@ -15,7 +15,14 @@ const urls = process.argv.slice(2);
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-echt-'));
 const bin = process.env.PREISWAECHTER_BIN;
 const child = spawn(bin || path.join(ROOT, 'node_modules/.bin/electron'), [...(bin ? [] : [ROOT]), `--remote-debugging-port=${PORT}`], {
-  env: { ...process.env, PREISWAECHTER_USERDATA: userData, PREISWAECHTER_HIDDEN: '1' }, stdio: 'ignore',
+  env: {
+    ...process.env,
+    PREISWAECHTER_USERDATA: userData,
+    PREISWAECHTER_HIDDEN: '1',
+    // Eine fertige Datei legt sonst Autostart und Startmenü-Eintrag im echten Profil an
+    XDG_CONFIG_HOME: path.join(userData, 'xdg-config'),
+    XDG_DATA_HOME: path.join(userData, 'xdg-data'),
+  }, stdio: 'ignore',
 });
 let browser;
 try {
