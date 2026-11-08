@@ -91,3 +91,6 @@ input[type="search"], input[type="text"] { font: inherit; color: var(--text); ba
 .card .thumb.placeholder { background: var(--surface); }
 .detail-head.noimg { grid-template-columns: 1fr; }
 .detail-head.noimg .detail-img { display: none; }
+
+.head-right { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.head-right a { text-decoration: none; }

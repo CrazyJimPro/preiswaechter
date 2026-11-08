@@ -1,0 +1,13 @@
+{
+  "name": "preiswaechter-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browsertests für den Preiswächter (Chrome for Testing + Firefox über Puppeteer)",
+  "scripts": {
+    "setup": "npx puppeteer browsers install chrome && npx puppeteer browsers install firefox@stable",
+    "test": "node run.mjs all"
+  },
+  "dependencies": {
+    "puppeteer": "^24.43.1"
+  }
+}

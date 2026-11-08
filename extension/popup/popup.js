@@ -191,7 +191,14 @@ function onTrack() {
 
 // ---------- Liste ----------
 
+// Produkte, die seit dem letzten Öffnen günstiger wurden – einmal lesen, dann zurücksetzen
+const unreadAtOpen = api.storage.local.get('unread').then((r) => {
+  api.runtime.sendMessage({ type: 'clearUnread' }).catch(() => {});
+  return new Set(Array.isArray(r.unread) ? r.unread : []);
+});
+
 async function renderList() {
+  const unread = await unreadAtOpen;
   const products = await listProducts();
   $count.textContent = products.length ? `(${products.length})` : '';
   $empty.hidden = products.length > 0;
@@ -205,6 +212,10 @@ async function renderList() {
   $list.replaceChildren(...products.map((p, i) => {
     const li = node('li');
     li.dataset.id = p.id;
+    if (unread.has(p.id)) {
+      li.classList.add('fresh');
+      li.title = 'Seit dem letzten Öffnen günstiger geworden';
+    }
     let img = node('div', 'thumb placeholder');
     if (p.imageUrl) {
       img = node('img', 'thumb');
@@ -245,6 +256,11 @@ function openDashboard(id) {
   api.tabs.create({ url: api.runtime.getURL('dashboard/dashboard.html') + (id ? `#/p/${id}` : '') });
   window.close();
 }
+document.getElementById('open-options').addEventListener('click', (e) => {
+  e.preventDefault();
+  api.runtime.openOptionsPage();
+  window.close();
+});
 document.getElementById('open-dashboard').addEventListener('click', (e) => {
   e.preventDefault();
   openDashboard(null);

@@ -1,0 +1,11 @@
+main.narrow { max-width: 760px; }
+.pagetitle { font-size: 22px; text-transform: none; letter-spacing: normal; color: var(--text); margin: 4px 0 16px; }
+.opt-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+label.check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0; cursor: pointer; }
+label.check input { margin-top: 3px; }
+.block { display: block; }
+label.button { display: inline-block; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+#import-plan { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--surface); }
+#import-plan button { margin-right: 6px; }
+code { font-size: 12px; background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 4px; }
+.warn code { background: rgba(0,0,0,.08); }

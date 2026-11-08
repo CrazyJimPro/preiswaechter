@@ -1,5 +1,5 @@
 import { api } from '../lib/api.js';
-import { listProducts, getHistory, getProduct, updateProduct, deleteProduct, INTERVALS } from '../lib/storage.js';
+import { listProducts, getHistory, getProduct, updateProduct, deleteProduct, getSettings, INTERVALS } from '../lib/storage.js';
 import { formatPrice, stockLabel, timeAgo, timeUntil, changeText, VIA_LABEL } from '../lib/format.js';
 import { RANGES, DAY, seriesInRange, stats, priceChange } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
@@ -175,6 +175,7 @@ function fillForm(p) {
   f.dropThreshold.value = p.dropThreshold != null ? String(p.dropThreshold).replace('.', ',') : '';
   f.notifyStock.checked = p.notifyStock !== false;
   f.paused.checked = !!p.paused;
+  getSettings().then((st) => { $('notify-off').hidden = st.notifications !== false; });
   $('s-saved').hidden = true;
 }
 

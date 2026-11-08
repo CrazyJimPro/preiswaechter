@@ -145,3 +145,41 @@ export async function appendHistory(id, point) {
   await api.storage.local.set({ [H(id)]: hist });
   return true;
 }
+
+// ---------- ungelesene Preissenkungen (Zahl am Symbol) ----------
+
+export async function getUnread() {
+  const { unread } = await api.storage.local.get('unread');
+  return Array.isArray(unread) ? unread : [];
+}
+
+export async function addUnread(id) {
+  const list = await getUnread();
+  if (!list.includes(id)) list.push(id);
+  await api.storage.local.set({ unread: list });
+  return list;
+}
+
+export async function clearUnread() {
+  await api.storage.local.set({ unread: [] });
+}
+
+/** Alle Produkte mit Verlauf – für die Datensicherung. */
+export async function allData() {
+  const products = await listProducts();
+  const histories = await Promise.all(products.map((p) => getHistory(p.id)));
+  return { settings: await getSettings(), products, histories };
+}
+
+/** Mehrere Produkte samt Verlauf auf einmal schreiben (Import). */
+export async function writeProducts(entries) {
+  const ids = await getIds();
+  const patch = {};
+  for (const { product, history } of entries) {
+    patch[P(product.id)] = product;
+    patch[H(product.id)] = history;
+    if (!ids.includes(product.id)) ids.push(product.id);
+  }
+  patch[IDS] = ids;
+  await api.storage.local.set(patch);
+}

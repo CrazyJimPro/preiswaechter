@@ -1,8 +1,12 @@
 // Preiswächter – Hintergrundskript
 // (Chrome: Service Worker, Firefox: Event-Page; beide als ES-Modul)
 import { api } from './lib/api.js';
-import { addProduct, getSettings, saveSettings } from './lib/storage.js';
-import { checkDue, checkProduct, passiveUpdate } from './lib/checker.js';
+import {
+  addProduct, getSettings, saveSettings, getProduct, getUnread, addUnread, clearUnread,
+} from './lib/storage.js';
+import { checkDue, checkProduct, passiveUpdate, onProductChecked } from './lib/checker.js';
+import { notificationsFor, notificationText } from './lib/rules.js';
+import { formatPrice } from './lib/format.js';
 
 const ALARM = 'preiswaechter-tick';
 
@@ -14,13 +18,71 @@ async function ensureAlarm() {
   }
 }
 
+// ---------- Zahl am Symbol ----------
+
+async function updateBadge() {
+  const unread = await getUnread();
+  await api.action.setBadgeBackgroundColor({ color: '#0f766e' });
+  if (api.action.setBadgeTextColor) await api.action.setBadgeTextColor({ color: '#ffffff' }).catch(() => {});
+  await api.action.setBadgeText({ text: unread.length ? String(unread.length) : '' });
+  await api.action.setTitle({
+    title: unread.length
+      ? `Preiswächter – ${unread.length} Produkt${unread.length === 1 ? '' : 'e'} günstiger geworden`
+      : 'Preiswächter',
+  });
+}
+
+// ---------- Benachrichtigungen ----------
+
+const NOTIF_PREFIX = 'pw|';
+
+async function notify(product, n) {
+  const { title, message } = notificationText(n, product, (v) => formatPrice(v, product.currency));
+  await api.notifications.create(`${NOTIF_PREFIX}${product.id}|${n.kind}|${Date.now()}`, {
+    type: 'basic',
+    iconUrl: api.runtime.getURL('icons/icon-128.png'),
+    title,
+    message,
+  });
+}
+
+onProductChecked(async (event) => {
+  const settings = await getSettings();
+  const list = notificationsFor(event, settings);
+  for (const n of list) {
+    try { await notify(event.product, n); } catch (e) { console.warn('Preiswächter: Benachrichtigung fehlgeschlagen', e); }
+  }
+  // Preissenkungen (auch ohne Benachrichtigung) als „neu“ am Symbol zählen
+  const prev = event.previous && event.previous.price;
+  if (prev != null && event.product.currentPrice != null && event.product.currentPrice < prev) {
+    await addUnread(event.product.id);
+    await updateBadge();
+  }
+});
+
+api.notifications.onClicked.addListener(async (id) => {
+  if (!id.startsWith(NOTIF_PREFIX)) return;
+  api.notifications.clear(id);
+  const [, productId, kind] = id.split('|');
+  if (kind === 'test') {
+    api.tabs.create({ url: api.runtime.getURL('dashboard/dashboard.html') });
+    return;
+  }
+  const p = await getProduct(productId);
+  if (p) api.tabs.create({ url: p.url });
+});
+
+// ---------- Lebenszyklus ----------
+
 api.runtime.onInstalled.addListener(async () => {
   await saveSettings(await getSettings()); // Standardwerte festschreiben, vorhandene bleiben
   await ensureAlarm();
+  await updateBadge();
 });
 
 api.runtime.onStartup.addListener(async () => {
   await ensureAlarm();
+  await updateBadge();
   checkDue(); // beim Browserstart Überfälliges nachholen
 });
 
@@ -35,6 +97,8 @@ api.tabs.onUpdated.addListener((tabId, info, tab) => {
     passiveUpdate(tabId, tab.url).catch(() => {});
   }
 });
+
+// ---------- Nachrichten von Popup, Übersicht, Einstellungen ----------
 
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg !== 'object' || msg.target === 'offscreen') return false;
@@ -56,6 +120,15 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return reply(checkProduct(msg.id).then((ev) => ({ product: ev && ev.product, error: ev && ev.error })));
     case 'checkDue':
       return reply(checkDue({ max: msg.max || 5 }).then((count) => ({ count })));
+    case 'clearUnread':
+      return reply(clearUnread().then(updateBadge).then(() => ({})));
+    case 'testNotification':
+      return reply(api.notifications.create(`${NOTIF_PREFIX}-|test|${Date.now()}`, {
+        type: 'basic',
+        iconUrl: api.runtime.getURL('icons/icon-128.png'),
+        title: 'Preiswächter: Test',
+        message: 'So sieht eine Benachrichtigung aus. Ein Klick öffnet die Übersicht.',
+      }).then(() => ({})));
     default:
       return false;
   }
@@ -64,4 +137,4 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 ensureAlarm();
 
 // Für Fehlersuche in der Konsole des Hintergrundskripts
-globalThis.preiswaechter = { checkDue, checkProduct };
+globalThis.preiswaechter = { checkDue, checkProduct, updateBadge };

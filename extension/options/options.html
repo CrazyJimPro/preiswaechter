@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preiswächter – Einstellungen</title>
+  <link rel="icon" href="../icons/icon-32.png">
+  <link rel="stylesheet" href="../ui/common.css">
+  <link rel="stylesheet" href="../dashboard/dashboard.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="top">
+    <a href="../dashboard/dashboard.html" class="brand"><img src="../icons/icon-32.png" width="24" height="24" alt=""><h1>Preiswächter</h1></a>
+    <a href="../dashboard/dashboard.html">← Zur Übersicht</a>
+  </header>
+
+  <main class="narrow">
+    <h2 class="pagetitle">Einstellungen</h2>
+
+    <p id="ff-hint" class="warn" hidden>
+      <strong>Firefox, temporär geladen:</strong> Firefox entfernt die Erweiterung beim Beenden.
+      Damit deine Produkte erhalten bleiben, setze einmalig in <code>about:config</code> die beiden Werte
+      <code>extensions.webextensions.keepStorageOnUninstall</code> und
+      <code>extensions.webextensions.keepUuidOnUninstall</code> auf <code>true</code> – und erstelle
+      unten ab und zu eine Sicherung.
+    </p>
+
+    <section class="panel">
+      <h3>Prüfung</h3>
+      <div class="opt-row">
+        <label for="interval">Neue Produkte prüfen alle</label>
+        <select id="interval"></select>
+        <button id="apply-all" type="button">Für alle Produkte übernehmen</button>
+      </div>
+      <label class="check"><input type="checkbox" id="tabFallback">
+        <span>Hintergrund-Tab benutzen, wenn der Preis anders nicht lesbar ist
+          <span class="muted small block">Nötig für Shops, die den Preis erst per JavaScript anzeigen. Der Tab erscheint dabei kurz in der Tab-Leiste.</span></span>
+      </label>
+      <p id="saved-check" class="muted small" hidden>Gespeichert ✓</p>
+    </section>
+
+    <section class="panel">
+      <h3>Benachrichtigungen</h3>
+      <label class="check"><input type="checkbox" id="notifications">
+        <span>Benachrichtigen bei Zielpreis, Preissenkung und „wieder lieferbar“
+          <span class="muted small block">Zielpreis und ab wie viel Prozent gemeldet wird, stellst du je Produkt in der Übersicht ein.</span></span>
+      </label>
+      <div class="opt-row">
+        <button id="test-notification" type="button">Testbenachrichtigung senden</button>
+        <span id="test-result" class="muted small"></span>
+      </div>
+      <p id="saved-notify" class="muted small" hidden>Gespeichert ✓</p>
+    </section>
+
+    <section class="panel">
+      <h3>Datensicherung</h3>
+      <p class="muted small">Die Sicherung enthält alle Produkte mit Preisverlauf und Einstellungen als JSON-Datei.</p>
+      <div class="opt-row">
+        <button id="export" type="button" class="primary">Sicherung herunterladen</button>
+        <label class="button file">Sicherung einspielen …<input id="import-file" type="file" accept=".json,application/json" hidden></label>
+      </div>
+      <div id="import-plan" hidden>
+        <p id="import-summary"></p>
+        <button id="import-go" type="button" class="primary">Jetzt einspielen</button>
+        <button id="import-cancel" type="button">Abbrechen</button>
+      </div>
+      <p id="import-result" hidden></p>
+      <p id="usage" class="muted small"></p>
+    </section>
+  </main>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
