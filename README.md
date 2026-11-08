@@ -19,7 +19,15 @@ Inspiriert von [PriceGhost](https://github.com/clucraft/PriceGhost) (selbst geho
 | Google Chrome (auch Edge, Brave, Vivaldi) | [ANLEITUNG-CHROME.md](ANLEITUNG-CHROME.md) |
 | Firefox | [ANLEITUNG-FIREFOX.md](ANLEITUNG-FIREFOX.md) |
 
-Die fertige Erweiterung gibt es als Zip-Datei auf der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases). In Chrome wird der entpackte Ordner einmal als „entpackte Erweiterung“ geladen und bleibt installiert. In Firefox wird er als „temporäres Add-on“ geladen und muss **nach jedem Firefox-Start neu geladen** werden. Wie deine Daten dabei erhalten bleiben, steht in der Firefox-Anleitung.
+Die fertige Erweiterung gibt es als Zip-Datei auf der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases). In Chrome wird der entpackte Ordner einmal als „entpackte Erweiterung“ geladen und bleibt installiert. In Firefox wird er als „temporäres Add-on“ geladen und muss **nach jedem Firefox-Start neu geladen** werden.
+
+> **Wichtig für Firefox – vor dem ersten Laden:** Sonst löscht Firefox beim Beenden alle verfolgten Produkte.
+> In `about:config` diese **beiden** Werte auf `true` setzen (fehlt ein Eintrag: Typ **Boolean** wählen und mit **+** anlegen):
+>
+> - `extensions.webextensions.keepStorageOnUninstall`
+> - `extensions.webextensions.keepUuidOnUninstall`
+>
+> Nur einer der beiden reicht nicht. Details in [ANLEITUNG-FIREFOX.md](ANLEITUNG-FIREFOX.md), Abschnitt 2.
 
 ## Benutzen
 
