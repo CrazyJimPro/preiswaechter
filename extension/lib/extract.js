@@ -455,9 +455,18 @@
       const m = u.pathname.match(/\/itm\/(?:[^/]+\/)?(\d{9,})/);
       if (m) return `${u.protocol}//${u.host}/itm/${m[1]}`;
     }
-    for (const k of Array.from(u.searchParams.keys())) {
-      if (TRACKING_PARAMS.test(k)) u.searchParams.delete(k);
-    }
+    // Bewusst per Text statt über u.searchParams: In Firefox-Content-Scripts liefert
+    // der Iterator von searchParams (Xray-Hülle) keine Einträge.
+    const kept = u.search
+      .replace(/^\?/, '')
+      .split('&')
+      .filter(Boolean)
+      .filter((pair) => {
+        let key = pair.split('=')[0];
+        try { key = decodeURIComponent(key.replace(/\+/g, ' ')); } catch { /* Rohwert nehmen */ }
+        return !TRACKING_PARAMS.test(key);
+      });
+    u.search = kept.length ? '?' + kept.join('&') : '';
     return u.href;
   }
 

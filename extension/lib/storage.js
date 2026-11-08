@@ -99,6 +99,11 @@ export async function addProduct(info) {
     nextCheck: now + intervalMin * 60 * 1000,
     lastError: null,
     targetPrice: info.targetPrice ?? null,
+    // Bei mehreren gefundenen Preisen: die Methode(n), deren Preis der User gewählt hat
+    preferredMethods: Array.isArray(info.preferredMethods) ? info.preferredMethods : [],
+    previousPrice: null,
+    lastChange: null,
+    errorCount: 0,
     dropThreshold: null, // Preissenkung in Prozent, ab der gemeldet wird
     notifyStock: true,
     createdAt: now,

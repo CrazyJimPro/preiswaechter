@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Preiswächter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Verfolgt Produktpreise in beliebigen Online-Shops, speichert den Preisverlauf und meldet Preissenkungen.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -20,7 +20,9 @@
   },
   "background": {
     "service_worker": "background.js",
-    "scripts": ["background.js"],
+    "scripts": [
+      "background.js"
+    ],
     "type": "module"
   },
   "permissions": [
@@ -29,15 +31,20 @@
     "alarms",
     "notifications",
     "activeTab",
-    "scripting"
+    "scripting",
+    "offscreen"
   ],
-  "optional_host_permissions": ["<all_urls>"],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "preiswaechter@crazyjimpro",
       "strict_min_version": "128.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     }
   }

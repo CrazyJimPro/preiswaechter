@@ -19,7 +19,7 @@ async function analyseActiveTab() {
   try {
     await api.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ['lib/priceParser.js', 'lib/extract.js'],
+      files: ['/lib/priceParser.js', '/lib/extract.js'],
     });
     const [res] = await api.scripting.executeScript({
       target: { tabId: tab.id },
@@ -76,8 +76,10 @@ function renderCurrent(state) {
       <div class="bigprice">${formatPrice(p.currentPrice, p.currency)}</div>
       <p class="hint">✓ Wird bereits verfolgt · zuletzt geprüft ${escapeHtml(timeAgo(p.lastChecked))}${
         p.targetPrice != null ? ` · Zielpreis ${formatPrice(p.targetPrice, p.currency)}` : ''}</p>
-      ${state.permissionMissing ? permissionWarning() : ''}`);
+      ${p.lastError ? `<p class="warn">⚠ ${escapeHtml(p.lastError)}</p>` : ''}
+      ${state.permissionMissing ? permissionWarning() : `<div class="row"><button id="checknow">Jetzt prüfen</button></div>`}`);
     bindPermissionButton(info);
+    bindCheckNow(p.id);
     return;
   }
 
@@ -130,6 +132,17 @@ function bindPermissionButton(info) {
   });
 }
 
+function bindCheckNow(id) {
+  const btn = document.getElementById('checknow');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Wird geprüft …';
+    await api.runtime.sendMessage({ type: 'checkNow', id }).catch(() => null);
+    refresh();
+  });
+}
+
 // ---------- „Preis verfolgen“ ----------
 
 function onTrack() {
@@ -147,6 +160,7 @@ function onTrack() {
     price: opt.price,
     stockStatus: info.stockStatus,
     targetPrice,
+    preferredMethods: info.hasConsensus ? [] : opt.methods,
   };
 
   // Reihenfolge ist wichtig:
@@ -182,7 +196,7 @@ async function renderList() {
       ${p.imageUrl ? `<img class="thumb" src="${escapeHtml(p.imageUrl)}" alt="">` : '<div class="thumb"></div>'}
       <div class="info">
         <div class="title" data-url="${escapeHtml(p.url)}" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
-        <div class="sub">${escapeHtml(p.shop || '')} · ${escapeHtml(stockLabel(p.stockStatus))}</div>
+        <div class="sub">${p.lastError ? `<span class="up" title="${escapeHtml(p.lastError)}">⚠</span> ` : ''}${escapeHtml([p.shop, stockLabel(p.stockStatus), timeAgo(p.lastChecked)].filter(Boolean).join(' · '))}</div>
       </div>
       <div class="price">${formatPrice(p.currentPrice, p.currency)}</div>
       <button class="del" title="Nicht mehr verfolgen" aria-label="Nicht mehr verfolgen">✕</button>

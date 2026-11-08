@@ -4,8 +4,17 @@ Browser-Erweiterung für **Firefox und Chrome**, die Produktpreise in Online-Sho
 
 Inspiriert von [PriceGhost](https://github.com/clucraft/PriceGhost) (selbst gehostete Server-App, MIT laut README). Übernommen wurden die Ideen der Preiserkennung (JSON-LD → Meta-Angaben → Shop-Erkennung → allgemeine Selektoren, Abstimmung mehrerer Methoden, Ratenpreise verwerfen), der Code ist neu geschrieben.
 
-> **Stand: Meilenstein 1 (v0.1.0)** – Preis auf der offenen Seite erkennen und Produkt speichern.
-> Noch nicht enthalten: Prüfung im Hintergrund, Preisverlauf-Diagramm, Benachrichtigungen (folgen in M2–M4).
+> **Stand: Meilenstein 2 (v0.2.0)** – Preis erkennen, Produkt speichern und regelmäßig im Hintergrund prüfen.
+> Noch nicht enthalten: Übersicht mit Preisdiagramm, Benachrichtigungen, Einstellungsseite (folgen in M3–M4).
+
+## So prüft die Erweiterung
+
+- Jedes Produkt wird standardmäßig **einmal pro Stunde** geprüft (mit kleinem Zufallsversatz), aber nur, solange der Browser läuft. Nach dem Browserstart wird Überfälliges nachgeholt.
+- Zuerst lädt die Erweiterung die Produktseite unsichtbar im Hintergrund und liest den Preis aus.
+- Klappt das nicht (Shops, die den Preis erst per JavaScript anzeigen, oder eine Bot-Sperre), öffnet sie die Seite **kurz in einem Hintergrund-Tab**, liest den Preis dort aus und schließt den Tab wieder. Du siehst den Tab dabei kurz in der Tab-Leiste.
+- Öffnest du ein verfolgtes Produkt selbst, wird der Preis dabei gleich mitgenommen.
+- Schlägt eine Prüfung fehl, zeigt das Popup ein ⚠ mit dem Grund, und die Erweiterung versucht es nach 5–30 Minuten erneut.
+- Im Popup gibt es auf einer verfolgten Produktseite den Knopf **Jetzt prüfen**.
 
 ## Ausprobieren
 
