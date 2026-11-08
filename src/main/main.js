@@ -1,6 +1,6 @@
 // Preiswächter – Hauptprozess
 import {
-  app, BrowserWindow, Notification, clipboard, dialog, ipcMain, net, powerMonitor, protocol, shell,
+  app, BrowserWindow, Notification, clipboard, dialog, ipcMain, nativeTheme, net, powerMonitor, protocol, shell,
 } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,6 +18,7 @@ import { notificationsFor, notificationText } from '../lib/rules.js';
 import { formatPrice } from '../lib/format.js';
 import { buildBackup, planImport } from '../lib/backup.js';
 import { isNewer } from '../lib/version.js';
+import { THEMES } from '../lib/constants.js';
 import '../lib/priceParser.js';
 import '../lib/extract.js';
 
@@ -75,7 +76,14 @@ function onProductChecked(event) {
 
 // Nur Einstellungen, die die Oberfläche ändern darf
 const PRODUCT_FIELDS = ['intervalMin', 'targetPrice', 'dropThreshold', 'notifyStock', 'paused', 'nextCheck'];
-const SETTING_FIELDS = ['defaultIntervalMin', 'notifications'];
+const SETTING_FIELDS = ['defaultIntervalMin', 'notifications', 'theme'];
+const BACKGROUND = { dark: '#161b1b', light: '#ffffff' };
+
+/** Steuert prefers-color-scheme in allen Fenstern, die Farben stehen in der CSS-Datei. */
+function applyTheme(theme) {
+  nativeTheme.themeSource = THEMES.some(([value]) => value === theme) ? theme : 'system';
+  if (mainWindow) mainWindow.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light);
+}
 
 function pick(obj, fields) {
   const clean = {};
@@ -94,7 +102,14 @@ const methods = {
   getHistory: (id) => store.getHistory(id),
   getProduct: (id) => store.getProduct(id),
   getSettings: () => store.getSettings(),
-  saveSettings: (patch) => store.saveSettings(pick(patch, SETTING_FIELDS)),
+  saveSettings(patch) {
+    const clean = pick(patch, SETTING_FIELDS);
+    if ('theme' in clean) {
+      if (!THEMES.some(([value]) => value === clean.theme)) delete clean.theme;
+      else applyTheme(clean.theme);
+    }
+    return store.saveSettings(clean);
+  },
   deleteProduct: (id) => store.deleteProduct(id),
   updateProduct: (id, patch) => store.updateProduct(id, pick(patch, PRODUCT_FIELDS)),
   analyseUrl: (url) => analyse(url, readPage),
@@ -194,6 +209,8 @@ if (IS_TEST) {
     tray: trayActive(),
     autostart: isAutostartEnabled(),
     windowOpen: !!mainWindow,
+    themeSource: nativeTheme.themeSource,
+    dark: nativeTheme.shouldUseDarkColors,
     pid: process.pid,
   });
   methods.closeWindow = () => { if (mainWindow) mainWindow.close(); };
@@ -240,6 +257,8 @@ function createWindow(hash = '') {
     icon: path.join(SRC, '..', 'assets', 'icon.png'),
     show: false,
     autoHideMenuBar: true,
+    // Sonst blitzt das Fenster beim Öffnen weiß auf
+    backgroundColor: nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light,
     webPreferences: {
       preload: path.join(SRC, 'preload.cjs'),
       sandbox: true,
@@ -335,6 +354,7 @@ if (!app.requestSingleInstanceLock()) {
     store = createStore(path.join(app.getPath('userData'), 'daten.json'));
     checker = createChecker(store);
     checker.onChecked(onProductChecked);
+    applyTheme(store.getSettings().theme);
     store.onChange(() => {
       setTrayUnread(store.getUnread().length);
       if (mainWindow) mainWindow.webContents.send('pw:changed');

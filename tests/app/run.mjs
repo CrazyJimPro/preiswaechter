@@ -45,7 +45,7 @@ const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-app-'));
 const [bin, ...binArgs] = process.argv.slice(2);
 const cmd = bin || path.join(ROOT, 'node_modules/.bin/electron');
 const args = [...(bin ? binArgs : [ROOT]), `--remote-debugging-port=${PORT}`];
-const child = spawn(cmd, args, { env: {
+const launch = () => spawn(cmd, args, { env: {
   ...process.env,
   PREISWAECHTER_USERDATA: userData,
   PREISWAECHTER_TEST: '1',
@@ -55,8 +55,12 @@ const child = spawn(cmd, args, { env: {
   ...(SHOTS_ON ? {} : { PREISWAECHTER_HIDDEN: '1' }),
 }, stdio: ['ignore', 'pipe', 'pipe'] });
 let log = '';
-child.stdout.on('data', (d) => { log += d; });
-child.stderr.on('data', (d) => { log += d; });
+let child = launch();
+const watchLog = (c) => {
+  c.stdout.on('data', (d) => { log += d; });
+  c.stderr.on('data', (d) => { log += d; });
+};
+watchLog(child);
 
 let browser;
 try {
@@ -241,6 +245,36 @@ try {
   const auto2 = await page.evaluate(() => window.pw.call('setAutostart', false));
   ok(auto2 === false, 'Autostart aus');
 
+  console.log('Design');
+  const isDark = () => page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const pickTheme = async (value) => {
+    await page.evaluate((v) => { const t = document.getElementById('o-theme'); t.value = v; t.dispatchEvent(new Event('change')); }, value);
+    await sleep(300);
+  };
+  ok((await call('getSettings')).theme === 'system', 'Standard: wie das System');
+  await pickTheme('dark');
+  ok((await isDark()) && (await bodyBg()) === 'rgb(22, 27, 27)', `Dunkel: Hintergrund ${await bodyBg()}`);
+  ok((await call('getSettings')).theme === 'dark', 'Dunkel gespeichert');
+  await shot('dunkel-einstellungen');
+  await page.evaluate(() => { location.hash = ''; });
+  await sleep(300);
+  await shot('dunkel-uebersicht');
+  await page.evaluate((id) => { location.hash = `#/p/${id}`; }, added.id);
+  await page.waitForSelector('#chart svg', { timeout: 5000 });
+  await sleep(300);
+  await shot('dunkel-detail');
+  await page.evaluate(() => { location.hash = '#/einstellungen'; });
+  await sleep(300);
+  ok((await page.evaluate(() => document.getElementById('o-theme').value)) === 'dark', 'Auswahl zeigt Dunkel');
+  await pickTheme('light');
+  ok(!(await isDark()) && (await bodyBg()) === 'rgb(255, 255, 255)', `Hell: Hintergrund ${await bodyBg()}`);
+  await call('saveSettings', { theme: 'lila' });
+  ok((await call('getSettings')).theme === 'light', 'unbekanntes Design abgelehnt');
+  await pickTheme('dark');
+  await pickTheme('system');
+  ok((await call('testState')).themeSource === 'system', 'zurück auf System');
+
   console.log('Sicherung');
   const backupFile = path.join(userData, 'sicherung.json');
   await call('exportBackup', backupFile);
@@ -275,6 +309,8 @@ try {
 
   ok(pageErrors.length === 0, `keine Skriptfehler (${pageErrors.join('; ')})`);
 
+  await call('saveSettings', { theme: 'dark' }); // für die Prüfung nach dem Neustart
+
   console.log('Hintergrund');
   ok((await call('testState')).windowOpen === true, 'Fenster offen');
   page.evaluate(() => window.pw.call('closeWindow')).catch(() => {});
@@ -288,6 +324,27 @@ try {
   for (let i = 0; i < 20 && child.exitCode == null && child.signalCode == null; i++) await sleep(250);
   const saved = JSON.parse(fs.readFileSync(path.join(userData, 'daten.json'), 'utf8'));
   ok(saved.ids.length === 3, `${saved.ids.length} Produkte in der Datei`);
+
+  console.log('Neustart');
+  await sleep(1000);
+  child = launch();
+  watchLog(child);
+  browser = null;
+  for (let i = 0; i < 60 && !browser; i++) {
+    await sleep(500);
+    try { browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${PORT}`, defaultViewport: null }); } catch { /* startet noch */ }
+  }
+  if (!browser) throw new Error('Keine Verbindung nach dem Neustart');
+  let again = null;
+  for (let i = 0; i < 40 && !again; i++) {
+    again = (await browser.pages()).find((x) => x.url().startsWith('preiswaechter://'));
+    if (!again) await sleep(250);
+  }
+  await again.waitForSelector('#add-form', { timeout: 10000 });
+  ok((await again.evaluate(() => window.pw.call('listProducts'))).length === 3, 'Produkte wieder da');
+  ok(await again.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches), 'Dunkles Design bleibt erhalten');
+  ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(22, 27, 27)', 'Hintergrund nach dem Neustart dunkel');
+  browser.disconnect();
 } catch (e) {
   errors.push(`Abbruch: ${e && e.stack || e}`);
 } finally {

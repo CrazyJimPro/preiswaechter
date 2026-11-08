@@ -3,7 +3,14 @@
 export const DEFAULT_SETTINGS = {
   defaultIntervalMin: 60,
   notifications: true,
+  theme: 'system',
 };
+
+export const THEMES = [
+  ['system', 'Wie das System'],
+  ['light', 'Hell'],
+  ['dark', 'Dunkel'],
+];
 
 export const INTERVALS = [
   [15, '15 Minuten'],

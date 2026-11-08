@@ -1,6 +1,6 @@
 // Einstellungsseite: Prüfung, Autostart, Benachrichtigungen, Datensicherung.
 import { rpc } from './rpc.js';
-import { INTERVALS } from '../lib/constants.js';
+import { INTERVALS, THEMES } from '../lib/constants.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -16,6 +16,16 @@ export async function renderSettings() {
     }));
   }
   sel.value = String(s.defaultIntervalMin);
+  const theme = $('o-theme');
+  if (!theme.options.length) {
+    theme.replaceChildren(...THEMES.map(([value, label]) => {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = label;
+      return o;
+    }));
+  }
+  theme.value = s.theme;
   $('o-notifications').checked = s.notifications !== false;
   $('o-autostart').checked = info.autostart;
   $('o-version').textContent = `Version ${info.version}`;
@@ -30,6 +40,8 @@ function backupResult(text, warn) {
 }
 
 export function setupSettings() {
+  $('o-theme').addEventListener('change', (e) => rpc.saveSettings({ theme: e.target.value }));
+
   $('o-interval').addEventListener('change', (e) => rpc.saveSettings({ defaultIntervalMin: Number(e.target.value) }));
 
   $('o-apply-all').addEventListener('click', async () => {
