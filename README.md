@@ -4,8 +4,19 @@ Browser-Erweiterung für **Firefox und Chrome**, die Produktpreise in Online-Sho
 
 Inspiriert von [PriceGhost](https://github.com/clucraft/PriceGhost) (selbst gehostete Server-App, MIT laut README). Übernommen wurden die Ideen der Preiserkennung (JSON-LD → Meta-Angaben → Shop-Erkennung → allgemeine Selektoren, Abstimmung mehrerer Methoden, Ratenpreise verwerfen), der Code ist neu geschrieben.
 
-> **Stand: Meilenstein 2 (v0.2.0)** – Preis erkennen, Produkt speichern und regelmäßig im Hintergrund prüfen.
-> Noch nicht enthalten: Übersicht mit Preisdiagramm, Benachrichtigungen, Einstellungsseite (folgen in M3–M4).
+> **Stand: Meilenstein 3 (v0.3.0)** – Preis erkennen, im Hintergrund prüfen, Übersicht mit Preisdiagramm.
+> Noch nicht enthalten: Benachrichtigungen, allgemeine Einstellungen, Export/Import (folgen in M4).
+
+## Übersicht und Preisverlauf
+
+- Im Popup oben rechts auf **Übersicht →** klicken (oder in der Liste auf einen Produktnamen).
+- Die Übersicht zeigt alle Produkte als Karten mit aktuellem Preis, Änderung (▼ günstiger, ▲ teurer) und einer kleinen Verlaufslinie der letzten 30 Tage. Suchen und Sortieren (z. B. „Größte Preissenkung“) gehen oben.
+- Ein Klick auf eine Karte öffnet die Detailansicht:
+  - Preisdiagramm für 7, 30, 90 Tage oder alles – mit der Maus oder den Pfeiltasten über die Linie fahren zeigt den Preis zu jedem Zeitpunkt.
+  - Tiefster, höchster und durchschnittlicher Preis im gewählten Zeitraum.
+  - „Verlauf als Tabelle“ listet jede gespeicherte Messung.
+  - Einstellungen je Produkt: Prüfintervall (15 Minuten bis 24 Stunden), Zielpreis, ab welcher Preissenkung gemeldet wird, Meldung bei „wieder lieferbar“, Prüfung pausieren.
+  - **Produkt nicht mehr verfolgen** (zweimal klicken) löscht das Produkt samt Verlauf.
 
 ## So prüft die Erweiterung
 

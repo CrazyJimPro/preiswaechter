@@ -33,3 +33,27 @@ export function escapeHtml(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 }
+
+export function timeUntil(ts) {
+  if (!ts) return '–';
+  const s = Math.round((ts - Date.now()) / 1000);
+  if (s <= 60) return 'gleich';
+  const m = Math.round(s / 60);
+  if (m < 60) return `in ${m} Min.`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `in ${h} Std.`;
+  return `in ${Math.round(h / 24)} Tagen`;
+}
+
+/** "▼ 10,00 € (−5 %)" – Text und Richtung ('down' | 'up') einer Preisänderung. */
+export function changeText(change, currency) {
+  if (!change) return null;
+  const arrow = change.diff < 0 ? '▼' : '▲';
+  const pct = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1, signDisplay: 'always' }).format(change.pct);
+  return {
+    text: `${arrow} ${formatPrice(Math.abs(change.diff), currency)} (${pct.replace('-', '−')} %)`,
+    dir: change.diff < 0 ? 'down' : 'up',
+  };
+}
+
+export const VIA_LABEL = { abruf: 'Abruf im Hintergrund', tab: 'Hintergrund-Tab', besuch: 'beim Besuch der Seite' };

@@ -1,6 +1,8 @@
 import { api } from '../lib/api.js';
-import { listProducts, findProductByUrl, deleteProduct } from '../lib/storage.js';
-import { formatPrice, stockLabel, timeAgo, escapeHtml } from '../lib/format.js';
+import { listProducts, findProductByUrl, deleteProduct, getHistory } from '../lib/storage.js';
+import { formatPrice, stockLabel, timeAgo, escapeHtml, changeText } from '../lib/format.js';
+import { DAY, priceChange } from '../lib/series.js';
+import { sparkline } from '../lib/chart.js';
 
 const $current = document.getElementById('current');
 const $list = document.getElementById('list');
@@ -77,7 +79,9 @@ function renderCurrent(state) {
       <p class="hint">✓ Wird bereits verfolgt · zuletzt geprüft ${escapeHtml(timeAgo(p.lastChecked))}${
         p.targetPrice != null ? ` · Zielpreis ${formatPrice(p.targetPrice, p.currency)}` : ''}</p>
       ${p.lastError ? `<p class="warn">⚠ ${escapeHtml(p.lastError)}</p>` : ''}
-      ${state.permissionMissing ? permissionWarning() : `<div class="row"><button id="checknow">Jetzt prüfen</button></div>`}`);
+      ${state.permissionMissing ? permissionWarning() : `<div class="row"><button id="checknow">Jetzt prüfen</button><button id="showhist">Preisverlauf</button></div>`}`);
+    const hist = document.getElementById('showhist');
+    if (hist) hist.addEventListener('click', () => openDashboard(p.id));
     bindPermissionButton(info);
     bindCheckNow(p.id);
     return;
@@ -191,17 +195,60 @@ async function renderList() {
   const products = await listProducts();
   $count.textContent = products.length ? `(${products.length})` : '';
   $empty.hidden = products.length > 0;
-  $list.innerHTML = products.map((p) => `
-    <li data-id="${escapeHtml(p.id)}">
-      ${p.imageUrl ? `<img class="thumb" src="${escapeHtml(p.imageUrl)}" alt="">` : '<div class="thumb"></div>'}
-      <div class="info">
-        <div class="title" data-url="${escapeHtml(p.url)}" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
-        <div class="sub">${p.lastError ? `<span class="up" title="${escapeHtml(p.lastError)}">⚠</span> ` : ''}${escapeHtml([p.shop, stockLabel(p.stockStatus), timeAgo(p.lastChecked)].filter(Boolean).join(' · '))}</div>
-      </div>
-      <div class="price">${formatPrice(p.currentPrice, p.currency)}</div>
-      <button class="del" title="Nicht mehr verfolgen" aria-label="Nicht mehr verfolgen">✕</button>
-    </li>`).join('');
+  const histories = await Promise.all(products.map((p) => getHistory(p.id)));
+  const node = (tag, cls, txt) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = txt;
+    return e;
+  };
+  $list.replaceChildren(...products.map((p, i) => {
+    const li = node('li');
+    li.dataset.id = p.id;
+    let img = node('div', 'thumb placeholder');
+    if (p.imageUrl) {
+      img = node('img', 'thumb');
+      img.alt = '';
+      img.src = p.imageUrl;
+      img.addEventListener('error', () => img.replaceWith(node('div', 'thumb placeholder')));
+    }
+
+    const info = node('div', 'info');
+    const title = node('div', 'title', p.name);
+    title.title = 'Preisverlauf in der Übersicht öffnen';
+    const sub = node('div', 'sub');
+    if (p.lastError) {
+      const warn = node('span', 'up', '⚠ ');
+      warn.title = p.lastError;
+      sub.append(warn);
+    }
+    sub.append([p.shop, stockLabel(p.stockStatus), timeAgo(p.lastChecked)].filter(Boolean).join(' · '));
+    info.append(title, sub);
+
+    const priceCol = node('div', 'pricecol');
+    const ch = changeText(priceChange(p.currentPrice, p.previousPrice), p.currency);
+    priceCol.append(
+      node('div', 'price', formatPrice(p.currentPrice, p.currency)),
+      ch ? node('div', `chg ${ch.dir}`, ch.text.split(' (')[0]) : node('div', 'chg'),
+    );
+
+    const del = node('button', 'del', '✕');
+    del.title = 'Nicht mehr verfolgen';
+    del.setAttribute('aria-label', 'Nicht mehr verfolgen');
+
+    li.append(img, info, sparkline(histories[i], { from: Date.now() - 7 * DAY, width: 56, height: 22, label: 'Preis der letzten 7 Tage' }), priceCol, del);
+    return li;
+  }));
 }
+
+function openDashboard(id) {
+  api.tabs.create({ url: api.runtime.getURL('dashboard/dashboard.html') + (id ? `#/p/${id}` : '') });
+  window.close();
+}
+document.getElementById('open-dashboard').addEventListener('click', (e) => {
+  e.preventDefault();
+  openDashboard(null);
+});
 
 $list.addEventListener('click', async (e) => {
   const li = e.target.closest('li');
@@ -225,11 +272,7 @@ $list.addEventListener('click', async (e) => {
     }
     return;
   }
-  const t = e.target.closest('.title');
-  if (t) {
-    api.tabs.create({ url: t.dataset.url });
-    window.close();
-  }
+  if (e.target.closest('.title')) openDashboard(li.dataset.id);
 });
 
 // Bilder, die nicht laden (Shop blockiert Einbettung), nicht als kaputtes Symbol zeigen
