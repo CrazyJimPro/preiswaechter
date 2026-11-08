@@ -8,7 +8,7 @@ Gilt für Linux Mint und andere 64-Bit-Systeme. Die App ist eine einzelne Datei 
    **[Preiswaechter-x86_64.AppImage](https://github.com/CrazyJimPro/preiswaechter/releases/latest/download/Preiswaechter-x86_64.AppImage)**
    (ca. 125 MB, landet in deinem Ordner **Downloads**).
 2. Verschiebe sie an einen festen Platz, zum Beispiel in einen neuen Ordner **Programme** in deinem Persönlichen Ordner. Dort bleibt sie liegen, sie **ist** das Programm.
-3. Mach sie ausführbar: Rechtsklick auf die Datei → **Eigenschaften** → Reiter **Zugriffsrechte** → Haken bei **Der Datei erlauben, sie als Programm auszuführen** → **Schließen**.
+3. Mach sie ausführbar: Rechtsklick auf die Datei → **Eigenschaften** → Reiter **Zugriffsrechte** → Haken bei **Der Datei erlauben sie als Programm auszuführen** → **Schließen**.
 4. Doppelklick auf die Datei. Der Preiswächter startet.
 
 Beim ersten Start legt die App selbst einen Eintrag im Startmenü an (unter **Zubehör**) und richtet den Autostart ein. Ab jetzt startest du sie über das Startmenü.
