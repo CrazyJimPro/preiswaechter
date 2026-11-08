@@ -7,10 +7,16 @@ Firefox installiert dauerhaft nur von Mozilla signierte Erweiterungen. Der Preis
 
 ## 1. Ordner bereitlegen
 
-Firefox lädt die Erweiterung aus dem Ordner `extension` dieses Projekts.
+Firefox lädt die Erweiterung aus einem Ordner auf deinem Rechner.
 
-- **Linux:** Der Ordner liegt unter `~/claude/price-tracker/extension`.
-- **Windows:** Den Ordner `extension` an einen festen Ort kopieren, zum Beispiel nach `C:\Users\<dein Name>\Preiswaechter\extension`.
+1. Die [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases) öffnen (das Repo ist privat, du musst bei GitHub angemeldet sein).
+2. Beim neuesten Release unter **Assets** die Datei `preiswaechter-<Version>.zip` herunterladen.
+3. Die Zip-Datei an einem festen Ort entpacken:
+   - **Windows:** Rechtsklick auf die Datei → **Alle extrahieren …** → als Ziel z. B. `C:\Users\<dein Name>\Preiswaechter` eingeben → **Extrahieren**.
+   - **Linux:** z. B. nach `~/Preiswaechter` entpacken (Rechtsklick → **Hier entpacken** oder `unzip preiswaechter-*.zip -d ~/Preiswaechter`).
+4. Darin liegt der Ordner `preiswaechter` mit der Datei `manifest.json`.
+
+Auf dem Entwicklungsrechner (Linux) geht auch direkt der Projektordner `~/claude/price-tracker/extension`.
 
 ## 2. Einmalig: Daten über Neustarts behalten
 
@@ -29,7 +35,7 @@ Es braucht **beide** Werte: Der erste behält die Daten, der zweite sorgt dafür
 1. `about:debugging#/runtime/this-firefox` in die Adresszeile eingeben und Enter drücken.
    Tipp: Die Seite als Lesezeichen speichern.
 2. **Temporäres Add-on laden …** klicken.
-3. Im Ordner `extension` die Datei `manifest.json` auswählen und öffnen.
+3. Im Ordner `preiswaechter` die Datei `manifest.json` auswählen und öffnen.
 4. „Preiswächter“ erscheint unter „Temporäre Erweiterungen“.
 
 Beim ersten Mal das Symbol anheften: rechts neben der Adresszeile auf das Puzzle-Symbol → bei „Preiswächter“ auf das Zahnrad → **An Symbolleiste anheften**.
@@ -56,7 +62,7 @@ Vorhandene Produkte bleiben beim Einspielen unverändert, nur ihr Verlauf wird e
 
 ## 6. Auf eine neue Version aktualisieren
 
-1. Den Inhalt des Ordners `extension` durch die neue Version ersetzen.
+1. Die neue Zip-Datei von der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases) herunterladen und an **denselben Ort** entpacken, sodass der alte Ordner `preiswaechter` überschrieben wird (Windows: „Dateien im Ziel ersetzen“ wählen).
 2. `about:debugging#/runtime/this-firefox` → bei „Preiswächter“ auf **Neu laden** klicken.
 
 ## Wenn etwas nicht klappt

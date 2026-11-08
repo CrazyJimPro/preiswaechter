@@ -19,7 +19,7 @@ Inspiriert von [PriceGhost](https://github.com/clucraft/PriceGhost) (selbst geho
 | Google Chrome (auch Edge, Brave, Vivaldi) | [ANLEITUNG-CHROME.md](ANLEITUNG-CHROME.md) |
 | Firefox | [ANLEITUNG-FIREFOX.md](ANLEITUNG-FIREFOX.md) |
 
-Kurz gesagt: In Chrome wird der Ordner `extension` einmal als „entpackte Erweiterung“ geladen und bleibt installiert. In Firefox wird er als „temporäres Add-on“ geladen und muss **nach jedem Firefox-Start neu geladen** werden. Wie deine Daten dabei erhalten bleiben, steht in der Firefox-Anleitung.
+Die fertige Erweiterung gibt es als Zip-Datei auf der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases). In Chrome wird der entpackte Ordner einmal als „entpackte Erweiterung“ geladen und bleibt installiert. In Firefox wird er als „temporäres Add-on“ geladen und muss **nach jedem Firefox-Start neu geladen** werden. Wie deine Daten dabei erhalten bleiben, steht in der Firefox-Anleitung.
 
 ## Benutzen
 
@@ -104,5 +104,13 @@ cd tests/e2e && npm install && npm run setup
 ```bash
 cd tests/e2e && npm test
 ```
+
+Release-Zip bauen (landet in `dist/`, danach mit `gh release create vX.Y.Z dist/preiswaechter-X.Y.Z.zip` hochladen):
+
+```bash
+npm run package
+```
+
+Versionsnummer steht an zwei Stellen: `extension/manifest.json` und `package.json`.
 
 Aufbau: `extension/` ist die Erweiterung (ein Manifest für beide Browser, kein Build-Schritt). In `extension/lib/` liegen Preiserkennung (`priceParser.js`, `extract.js`), Prüfung (`checker.js`), Speicher (`storage.js`), Diagramme (`chart.js`, `series.js`), Melderegeln (`rules.js`) und Sicherung (`backup.js`). `tests/` enthält die Unit-Tests, `tests/e2e/` die Browsertests.

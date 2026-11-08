@@ -8,17 +8,23 @@ In Chrome bleibt die Erweiterung nach dem Laden **dauerhaft installiert**, auch 
 
 ### Ordner bereitlegen
 
-Chrome lädt die Erweiterung aus dem Ordner `extension` dieses Projekts. Der Ordner muss dauerhaft an seinem Platz bleiben; wird er verschoben oder gelöscht, ist die Erweiterung weg.
+Chrome lädt die Erweiterung aus einem Ordner auf deinem Rechner. Der Ordner muss dauerhaft an seinem Platz bleiben; wird er verschoben oder gelöscht, ist die Erweiterung weg.
 
-- **Linux:** Der Ordner liegt unter `~/claude/price-tracker/extension`.
-- **Windows:** Den Ordner `extension` an einen festen Ort kopieren, zum Beispiel nach `C:\Users\<dein Name>\Preiswaechter\extension`.
+1. Die [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases) öffnen (das Repo ist privat, du musst bei GitHub angemeldet sein).
+2. Beim neuesten Release unter **Assets** die Datei `preiswaechter-<Version>.zip` herunterladen.
+3. Die Zip-Datei an einem festen Ort entpacken:
+   - **Windows:** Rechtsklick auf die Datei → **Alle extrahieren …** → als Ziel z. B. `C:\Users\<dein Name>\Preiswaechter` eingeben → **Extrahieren**.
+   - **Linux:** z. B. nach `~/Preiswaechter` entpacken (Rechtsklick → **Hier entpacken** oder `unzip preiswaechter-*.zip -d ~/Preiswaechter`).
+4. Darin liegt der Ordner `preiswaechter` mit der Datei `manifest.json` – diesen Ordner lädst du gleich in Chrome.
+
+Auf dem Entwicklungsrechner (Linux) geht auch direkt der Projektordner `~/claude/price-tracker/extension`.
 
 ### Laden
 
 1. In Chrome `chrome://extensions` in die Adresszeile eingeben und Enter drücken.
 2. Oben rechts den Schalter **Entwicklermodus** einschalten.
 3. Oben links auf **Entpackte Erweiterung laden** klicken.
-4. Den Ordner `extension` auswählen (den Ordner selbst, nicht eine Datei darin) und bestätigen.
+4. Den Ordner `preiswaechter` auswählen (den Ordner selbst, nicht eine Datei darin) und bestätigen.
 5. Die Karte „Preiswächter 0.4.0“ erscheint.
 
 ### Symbol anheften
@@ -37,7 +43,7 @@ Erscheint nichts:
 
 ## 3. Auf eine neue Version aktualisieren
 
-1. Den Inhalt des Ordners `extension` durch die neue Version ersetzen (gleicher Ordner, gleicher Ort).
+1. Die neue Zip-Datei von der [Releases-Seite](https://github.com/CrazyJimPro/preiswaechter/releases) herunterladen und an **denselben Ort** entpacken, sodass der alte Ordner `preiswaechter` überschrieben wird (Windows: „Dateien im Ziel ersetzen“ wählen).
 2. `chrome://extensions` öffnen und auf der Karte „Preiswächter“ auf den Pfeilkreis **⟳** klicken.
 
 Deine Produkte und der Verlauf bleiben dabei erhalten.
