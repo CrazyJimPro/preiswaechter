@@ -352,7 +352,7 @@ try {
   await themeShots('mitternacht');
   ok((await page.evaluate(() => document.getElementById('o-theme').value)) === 'dark', 'Auswahl zeigt Mitternacht');
   await pickTheme('light');
-  ok(!(await isDark()) && (await bodyBg()) === 'rgb(245, 243, 255)', `Hell: Hintergrund ${await bodyBg()}`);
+  ok(!(await isDark()) && (await bodyBg()) === 'rgb(247, 241, 232)', `Hell: Hintergrund ${await bodyBg()}`);
   await themeShots('hell');
   await call('saveSettings', { theme: 'lila' });
   ok((await call('getSettings')).theme === 'light', 'unbekanntes Design abgelehnt');

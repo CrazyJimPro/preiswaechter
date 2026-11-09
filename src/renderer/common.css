@@ -7,32 +7,32 @@
   src: url("fonts/plus-jakarta-sans-latin.woff2") format("woff2");
 }
 
-/* Die beiden Designs des Abo-Trackers: Hell (Pastell mit Pink) und, bei dunkler Einstellung, Mitternacht (Navy mit Gold) */
+/* Aufbau wie im Abo-Tracker. Hell: warmes Creme und Hellbraun. Bei dunkler Einstellung Mitternacht (Navy mit Gold) */
 :root {
-  --bg: #f5f3ff;
-  --body-gradient: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 25%, #fce7f3 50%, #fbcfe8 75%, #e0e7ff 100%);
-  --glass: rgba(255, 255, 255, .6);
-  --glass-ring: rgba(30, 27, 75, .08);
-  --glass-header: rgba(255, 255, 255, .4);
-  --popover: #ffffff;
-  --field: rgba(255, 255, 255, .6);
-  --surface: rgba(30, 27, 75, .05);
-  --border: rgba(30, 27, 75, .12);
-  --text: #1e1b4b;
-  --muted: rgba(30, 27, 75, .65);
-  --accent: #f472b6;
-  --accent-from: #f472b6;
-  --accent-to: #ec4899;
-  --accent-shadow: rgba(236, 72, 153, .35);
+  --bg: #f7f1e8;
+  --body-gradient: linear-gradient(135deg, #faf6ef 0%, #f5ede0 25%, #efe3d2 50%, #e9dac5 75%, #f3ebdf 100%);
+  --glass: rgba(255, 252, 247, .6);
+  --glass-ring: rgba(62, 39, 20, .1);
+  --glass-header: rgba(255, 252, 247, .45);
+  --popover: #fffdf9;
+  --field: rgba(255, 252, 247, .65);
+  --surface: rgba(62, 39, 20, .05);
+  --border: rgba(62, 39, 20, .14);
+  --text: #3b2a1c;
+  --muted: rgba(59, 42, 28, .7);
+  --accent: #a8764a;
+  --accent-from: #a8764a;
+  --accent-to: #8b5e36;
+  --accent-shadow: rgba(139, 94, 54, .35);
   --accent-text: #ffffff;
-  --link: #be185d; /* Das helle Pink wäre als Schrift zu schwach lesbar */
-  --down: #15803d;
-  --up: #dc2626;
+  --link: #8a5a2b;
+  --down: #166534;
+  --up: #b91c1c;
   --warn-bg: #fef3c7;
   --warn-text: #92400e;
-  --orb-1: #ec4899;
-  --orb-2: #3b82f6;
-  --orb-3: #8b5cf6;
+  --orb-1: #c89b6c;
+  --orb-2: #d9b88f;
+  --orb-3: #b08968;
   --orb-opacity: .25;
   color-scheme: light dark;
 }

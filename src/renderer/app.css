@@ -1,4 +1,4 @@
-:root { --grid: rgba(30, 27, 75, .08); --tooltip-bg: var(--popover); }
+:root { --grid: rgba(62, 39, 20, .08); --tooltip-bg: var(--popover); }
 @media (prefers-color-scheme: dark) { :root { --grid: rgba(245, 240, 230, .08); } }
 
 body { min-height: 100vh; }
