@@ -35,6 +35,16 @@ function closeBox() {
   $('add-result').replaceChildren();
 }
 
+// Der zuletzt verwendete Link, er soll aus der Zwischenablage nicht noch einmal kommen
+let lastOffered = null;
+// Link, dessen Versuch fehlgeschlagen ist: Bleibt zum Korrigieren stehen, darf aber einem neuen weichen
+let failedUrl = null;
+
+function resetForm() {
+  $('add-url').value = '';
+  closeBox();
+}
+
 function renderPreview(info) {
   let chosen = 0;
   const image = info.imageUrl
@@ -73,20 +83,22 @@ function renderPreview(info) {
             targetPrice,
             preferredMethods: info.hasConsensus ? [] : opt.methods,
           });
-          $('add-url').value = '';
-          closeBox();
+          resetForm();
         },
       }),
-      h('button', { type: 'button', text: 'Abbrechen', onclick: closeBox }))))); 
+      h('button', { type: 'button', text: 'Abbrechen', onclick: resetForm })))));
 }
 
 function showResult({ result, error, status, tracked }, url) {
+  failedUrl = null;
   if (tracked) {
+    $('add-url').value = '';
     showBox(h('p', {}, `„${tracked.name}“ wird bereits verfolgt. `,
       h('a', { href: `#/p/${tracked.id}`, text: 'Zum Preisverlauf', onclick: closeBox })));
   } else if (result && result.options.length) {
     renderPreview(result);
   } else {
+    failedUrl = url;
     const why = error || (status >= 400 ? `Der Shop antwortet mit HTTP ${status}.` : 'Auf dieser Seite wurde kein Preis gefunden. Ist es eine einzelne Produktseite?');
     showBox(
       h('p', { class: 'warn', text: why }),
@@ -129,16 +141,22 @@ export function setupAddForm() {
       showBox(h('p', { class: 'warn', text: 'Bitte den vollständigen Link einfügen, er beginnt mit https://' }));
       return;
     }
+    lastOffered = url;
+    failedUrl = null;
     analyse(url);
   });
-  // Liegt beim Wechsel in die App ein Link in der Zwischenablage, schon mal eintragen
-  let lastOffered = null;
+  // Liegt beim Wechsel in die App ein neuer Link in der Zwischenablage, schon mal eintragen
   async function offerClipboard() {
     const input = $('add-url');
-    if (input.value || document.getElementById('list-view').hidden) return;
+    const free = !input.value || input.value === failedUrl;
+    if (!free || document.getElementById('list-view').hidden) return;
     const url = await rpc.clipboardUrl();
     if (url && url !== lastOffered) {
       lastOffered = url;
+      if (failedUrl) {
+        failedUrl = null;
+        closeBox();
+      }
       input.value = url;
       $('add-hint').hidden = false;
     }

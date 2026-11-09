@@ -83,7 +83,7 @@ function onProductChecked(event) {
 // Nur Einstellungen, die die Oberfläche ändern darf
 const PRODUCT_FIELDS = ['intervalMin', 'targetPrice', 'dropThreshold', 'notifyStock', 'paused', 'nextCheck'];
 const SETTING_FIELDS = ['defaultIntervalMin', 'notifications', 'theme'];
-const BACKGROUND = { dark: '#161b1b', light: '#ffffff' };
+const BACKGROUND = { dark: '#1a1a2e', light: '#f5f3ff' };
 
 /** Steuert prefers-color-scheme in allen Fenstern, die Farben stehen in der CSS-Datei. */
 function applyTheme(theme) {
@@ -135,10 +135,11 @@ const methods = {
   openExternal(url) {
     if (isWebUrl(url)) shell.openExternal(url);
   },
-  /** Internetadresse aus der Zwischenablage, sonst null. */
+  /** Internetadresse aus der Zwischenablage, sonst null. Schon verfolgte Produkte werden nicht angeboten. */
   async clipboardUrl() {
     const text = String(await clipboard.readText()).trim();
-    return isWebUrl(text) && !/\s/.test(text) ? text : null;
+    if (!isWebUrl(text) || /\s/.test(text)) return null;
+    return store.findProductByUrl(globalThis.Preiswaechter.normalizeProductUrl(text)) ? null : text;
   },
   appInfo: () => ({
     version: currentVersion(),
@@ -238,6 +239,12 @@ if (IS_TEST) {
   });
   methods.closeWindow = () => { if (mainWindow) mainWindow.close(); };
   methods.setFakeLatest = (v) => { latestVersion = v; };
+  /** Schreibt in die Zwischenablage und gibt den alten Inhalt zurück, damit der Test ihn wiederherstellen kann. */
+  methods.testClipboard = async (text) => {
+    const before = await clipboard.readText();
+    await clipboard.writeText(text);
+    return before;
+  };
   // wie ein Klick auf das X der übrigen Fenster
   methods.closeOtherWindows = () => {
     for (const w of BrowserWindow.getAllWindows()) if (w !== mainWindow) w.close();

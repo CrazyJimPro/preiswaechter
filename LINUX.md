@@ -66,10 +66,10 @@ Geprüft wird nur, solange die App läuft. Deshalb startet sie automatisch beim 
 
 Wie oft geprüft wird, stellst du je Produkt ein (15 Minuten bis 24 Stunden, Standard 1 Stunde). Für neue Produkte gilt der Wert unter **⚙ Einstellungen**.
 
-## Das dunkle Design einschalten
+## Das Design wechseln
 
 1. Klicke auf **⚙ Einstellungen**.
-2. Wähle ganz oben unter **Aussehen** bei **Design** den Eintrag **Dunkel**. Die App wechselt sofort, ein Neustart ist nicht nötig.
+2. Wähle ganz oben unter **Aussehen** bei **Design** den Eintrag **Hell** oder **Mitternacht**. Die App wechselt sofort, ein Neustart ist nicht nötig. Bei **Wie das System** richtet sie sich nach deinem Betriebssystem.
 
 Zur Auswahl stehen **Wie das System**, **Hell** und **Dunkel**. Die Wahl bleibt beim nächsten Start erhalten.
 

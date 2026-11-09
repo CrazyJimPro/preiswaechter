@@ -1,38 +1,89 @@
+/* Die Schrift des Abo-Trackers, mitgeliefert (Lizenz: fonts/OFL.txt), alle Stärken in einer Datei */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("fonts/plus-jakarta-sans-latin.woff2") format("woff2");
+}
+
+/* Die beiden Designs des Abo-Trackers: Hell (Pastell mit Pink) und, bei dunkler Einstellung, Mitternacht (Navy mit Gold) */
 :root {
-  --bg: #ffffff;
-  --surface: #f4f6f6;
-  --border: #dde3e2;
-  --text: #17201f;
-  --muted: #5f6b6a;
-  --accent: #0f766e;
+  --bg: #f5f3ff;
+  --body-gradient: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 25%, #fce7f3 50%, #fbcfe8 75%, #e0e7ff 100%);
+  --glass: rgba(255, 255, 255, .6);
+  --glass-ring: rgba(30, 27, 75, .08);
+  --glass-header: rgba(255, 255, 255, .4);
+  --popover: #ffffff;
+  --field: rgba(255, 255, 255, .6);
+  --surface: rgba(30, 27, 75, .05);
+  --border: rgba(30, 27, 75, .12);
+  --text: #1e1b4b;
+  --muted: rgba(30, 27, 75, .65);
+  --accent: #f472b6;
+  --accent-from: #f472b6;
+  --accent-to: #ec4899;
+  --accent-shadow: rgba(236, 72, 153, .35);
   --accent-text: #ffffff;
+  --link: #be185d; /* Das helle Pink wäre als Schrift zu schwach lesbar */
   --down: #15803d;
-  --up: #b91c1c;
-  --warn-bg: #fff7e0;
-  --warn-text: #7a4b00;
+  --up: #dc2626;
+  --warn-bg: #fef3c7;
+  --warn-text: #92400e;
+  --orb-1: #ec4899;
+  --orb-2: #3b82f6;
+  --orb-3: #8b5cf6;
+  --orb-opacity: .25;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #161b1b;
-    --surface: #202727;
-    --border: #334140;
-    --text: #e6eceb;
-    --muted: #9aa8a6;
-    --accent: #2dd4bf;
-    --accent-text: #062b27;
-    --down: #4ade80;
-    --up: #f87171;
-    --warn-bg: #3a2e12;
-    --warn-text: #f5d58a;
+    --bg: #1a1a2e;
+    --body-gradient: linear-gradient(180deg, #1a1a2e 0%, #16162a 100%);
+    --glass: rgba(245, 240, 230, .06);
+    --glass-ring: rgba(212, 175, 55, .18);
+    --glass-header: rgba(255, 255, 255, .05);
+    --popover: #20203a;
+    --field: rgba(245, 240, 230, .06);
+    --surface: rgba(245, 240, 230, .08);
+    --border: rgba(212, 175, 55, .2);
+    --text: #f5f0e6;
+    --muted: rgba(245, 240, 230, .65);
+    --accent: #d4af37;
+    --accent-from: #f4d160;
+    --accent-to: #a08628;
+    --accent-shadow: rgba(212, 175, 55, .4);
+    --accent-text: #1a1a2e;
+    --link: #d4af37;
+    --down: #34d399;
+    --up: #fb7185;
+    --warn-bg: rgba(212, 175, 55, .14);
+    --warn-text: #f4d160;
+    --orb-1: #d4af37;
+    --orb-2: #c9a876;
+    --orb-3: #a08628;
+    --orb-opacity: .2;
   }
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--bg) var(--body-gradient) fixed;
   color: var(--text);
-  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  font: 14px/1.45 "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+}
+/* Die weichen Farbflecken im Hintergrund, ruhend statt animiert: Die App soll keine Rechenleistung verbrauchen */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--orb-opacity);
+  background:
+    radial-gradient(circle 460px at calc(100% - 100px) 100px, var(--orb-1) 30%, transparent),
+    radial-gradient(circle 390px at 100px calc(100% - 100px), var(--orb-2) 30%, transparent),
+    radial-gradient(circle 320px at calc(50% + 200px) calc(50% + 200px), var(--orb-3) 30%, transparent);
 }
 h1, h2 { margin: 0; font-weight: 600; }
 h1 { font-size: 16px; }
@@ -43,20 +94,31 @@ button {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 7px 12px;
   cursor: pointer;
+  transition: filter .15s, background-color .15s;
 }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button.primary {
+  background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  border-color: transparent;
+  color: var(--accent-text);
+  font-weight: 600;
+  box-shadow: 0 8px 14px -4px var(--accent-shadow);
+}
 button:disabled { opacity: .6; cursor: default; }
 input[type="text"], select {
   font: inherit;
   color: var(--text);
-  background: var(--bg);
+  background: var(--field);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 6px 8px;
 }
-.warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 8px 10px; }
+input::placeholder { color: var(--muted); }
+/* Die aufgeklappte Liste braucht eine feste Farbe, durchscheinend wäre sie unlesbar */
+select option { background: var(--popover); color: var(--text); }
+.warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 12px; padding: 8px 10px; }
 .down { color: var(--down); }
 .up { color: var(--up); }

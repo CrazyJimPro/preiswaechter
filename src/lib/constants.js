@@ -6,10 +6,12 @@ export const DEFAULT_SETTINGS = {
   theme: 'system',
 };
 
+// Der Wert steuert das helle oder dunkle Farbschema des Fensters, die Farben stehen in common.css.
+// „dark“ heißt für den Nutzer Mitternacht, so behält eine frühere Wahl „Dunkel“ ihre Gültigkeit.
 export const THEMES = [
   ['system', 'Wie das System'],
   ['light', 'Hell'],
-  ['dark', 'Dunkel'],
+  ['dark', 'Mitternacht'],
 ];
 
 export const INTERVALS = [

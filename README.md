@@ -6,7 +6,7 @@ Desktop-App für **Windows und Linux**, die Produktpreise in Online-Shops verfol
 - Automatische Prüfung im Hintergrund, jedes Produkt mit eigenem Intervall
 - Preisverlauf mit Diagramm, tiefstem, höchstem und durchschnittlichem Preis
 - Benachrichtigung bei Zielpreis, Preissenkung und „wieder lieferbar“
-- Helles und dunkles Design
+- Zwei Designs: Hell und Mitternacht
 - Datensicherung als Datei
 
 ## Installieren und benutzen

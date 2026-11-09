@@ -154,6 +154,38 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.card').length === 1, { timeout: 3000 });
   ok(true, 'Karte erscheint in der Übersicht');
 
+  console.log('Hinzufügen-Zeile und Zwischenablage');
+  const addValue = () => page.evaluate(() => document.getElementById('add-url').value);
+  const backToApp = async () => { await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await sleep(200); };
+  const clipboardBefore = await call('testClipboard', `${BASE}/p.html?utm_source=mail`);
+  ok((await addValue()) === '', 'nach dem Verfolgen ist die Zeile leer');
+  await backToApp();
+  ok((await addValue()) === '', 'schon verfolgter Link kommt beim Zurückwechseln nicht wieder');
+  await call('testClipboard', `${BASE}/js.html?neu=1`);
+  await backToApp();
+  ok((await addValue()) === `${BASE}/js.html?neu=1`, 'neu kopierter Link wird eingetragen');
+  await page.evaluate(() => { document.getElementById('add-url').value = ''; });
+  await call('testClipboard', `${BASE}/konflikt.html`);
+  await submit(`${BASE}/konflikt.html`);
+  await page.evaluate(() => [...document.querySelectorAll('#add-result button')].find((b) => b.textContent === 'Abbrechen').click());
+  ok((await addValue()) === '' && !(await productBy('konflikt')), 'Abbrechen leert die Zeile und speichert nichts');
+  await backToApp();
+  ok((await addValue()) === '', 'abgebrochener Link kommt nicht wieder');
+  await call('testClipboard', `${BASE}/blog.html`);
+  await submit(`${BASE}/blog.html`);
+  ok((await addValue()) === `${BASE}/blog.html`, 'Fehlschlag: Link bleibt zum Korrigieren stehen');
+  await backToApp();
+  ok((await addValue()) === `${BASE}/blog.html`, 'Fehlschlag: gleicher Link ändert nichts');
+  await call('testClipboard', `${BASE}/js.html?neu=2`);
+  await backToApp();
+  ok((await addValue()) === `${BASE}/js.html?neu=2` && (await page.evaluate(() => document.getElementById('add-result').hidden)), 'Fehlschlag: neu kopierter Link ersetzt den alten');
+  await page.evaluate(() => { document.getElementById('add-url').value = 'von Hand getippt'; });
+  await call('testClipboard', `${BASE}/js.html?neu=3`);
+  await backToApp();
+  ok((await addValue()) === 'von Hand getippt', 'von Hand Getipptes wird nie überschrieben');
+  await page.evaluate(() => { document.getElementById('add-url').value = ''; });
+  await call('testClipboard', clipboardBefore);
+
   console.log('Sonderfälle beim Hinzufügen');
   await submit(`${BASE}/p.html`);
   ok((await page.evaluate(() => document.getElementById('add-result').textContent)).includes('bereits verfolgt'), 'schon verfolgtes Produkt erkannt');
@@ -296,23 +328,32 @@ try {
     await page.evaluate((v) => { const t = document.getElementById('o-theme'); t.value = v; t.dispatchEvent(new Event('change')); }, value);
     await sleep(300);
   };
+  const themeShots = async (name) => {
+    await shot(`${name}-einstellungen`);
+    await page.evaluate(() => { location.hash = ''; });
+    await sleep(300);
+    await shot(`${name}-uebersicht`);
+    await page.evaluate((id) => { location.hash = `#/p/${id}`; }, added.id);
+    await page.waitForSelector('#chart svg', { timeout: 5000 });
+    await sleep(300);
+    await shot(`${name}-detail`);
+    await page.evaluate(() => { location.hash = '#/einstellungen'; });
+    await sleep(300);
+  };
   ok((await call('getSettings')).theme === 'system', 'Standard: wie das System');
+  ok(JSON.stringify(await page.evaluate(() => [...document.getElementById('o-theme').options].map((o) => o.textContent))) === JSON.stringify(['Wie das System', 'Hell', 'Mitternacht']), 'Auswahl: Wie das System, Hell, Mitternacht');
+  ok(await page.evaluate(async () => {
+    await document.fonts.load('14px "Plus Jakarta Sans"');
+    return [...document.fonts].some((f) => f.family.includes('Plus Jakarta Sans') && f.status === 'loaded');
+  }), 'Schrift Plus Jakarta Sans geladen');
   await pickTheme('dark');
-  ok((await isDark()) && (await bodyBg()) === 'rgb(22, 27, 27)', `Dunkel: Hintergrund ${await bodyBg()}`);
-  ok((await call('getSettings')).theme === 'dark', 'Dunkel gespeichert');
-  await shot('dunkel-einstellungen');
-  await page.evaluate(() => { location.hash = ''; });
-  await sleep(300);
-  await shot('dunkel-uebersicht');
-  await page.evaluate((id) => { location.hash = `#/p/${id}`; }, added.id);
-  await page.waitForSelector('#chart svg', { timeout: 5000 });
-  await sleep(300);
-  await shot('dunkel-detail');
-  await page.evaluate(() => { location.hash = '#/einstellungen'; });
-  await sleep(300);
-  ok((await page.evaluate(() => document.getElementById('o-theme').value)) === 'dark', 'Auswahl zeigt Dunkel');
+  ok((await isDark()) && (await bodyBg()) === 'rgb(26, 26, 46)', `Mitternacht: Hintergrund ${await bodyBg()}`);
+  ok((await call('getSettings')).theme === 'dark', 'Mitternacht gespeichert');
+  await themeShots('mitternacht');
+  ok((await page.evaluate(() => document.getElementById('o-theme').value)) === 'dark', 'Auswahl zeigt Mitternacht');
   await pickTheme('light');
-  ok(!(await isDark()) && (await bodyBg()) === 'rgb(255, 255, 255)', `Hell: Hintergrund ${await bodyBg()}`);
+  ok(!(await isDark()) && (await bodyBg()) === 'rgb(245, 243, 255)', `Hell: Hintergrund ${await bodyBg()}`);
+  await themeShots('hell');
   await call('saveSettings', { theme: 'lila' });
   ok((await call('getSettings')).theme === 'light', 'unbekanntes Design abgelehnt');
   await pickTheme('dark');
@@ -386,8 +427,8 @@ try {
   }
   await again.waitForSelector('#add-form', { timeout: 10000 });
   ok((await again.evaluate(() => window.pw.call('listProducts'))).length === 3, 'Produkte wieder da');
-  ok(await again.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches), 'Dunkles Design bleibt erhalten');
-  ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(22, 27, 27)', 'Hintergrund nach dem Neustart dunkel');
+  ok(await again.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches), 'Mitternacht bleibt erhalten');
+  ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(26, 26, 46)', 'Hintergrund nach dem Neustart Mitternacht');
 
   console.log('Nach einem Update');
   await again.waitForFunction(() => document.getElementById('app-version').textContent === 'v9.9.9', { timeout: 3000 });
