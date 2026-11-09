@@ -1,7 +1,7 @@
 {
   "name": "preiswaechter",
   "productName": "Preiswächter",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Verfolgt Produktpreise in Online-Shops, speichert den Preisverlauf und meldet Preissenkungen",
   "type": "module",
   "main": "src/main/main.js",
