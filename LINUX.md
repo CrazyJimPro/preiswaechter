@@ -36,13 +36,48 @@ Manche Shops zeigen zuerst ein Captcha oder eine Cookie-Abfrage. Dann erscheint 
 ## Den Preisverlauf ansehen
 
 1. Klicke in der Übersicht auf ein Produkt.
-2. Oben steht der aktuelle Preis, darunter das Diagramm. Wähle rechts den Zeitraum: **7 Tage**, **30 Tage**, **90 Tage** oder **Alles**.
-3. Fahre mit der Maus über das Diagramm, dann siehst du den Preis zu jedem Zeitpunkt.
-4. **Verlauf als Tabelle** listet jede Messung auf, **Zum Shop** öffnet die Seite in deinem Browser.
+2. Oben steht der aktuelle Preis, darunter das Diagramm. Wähle rechts den Zeitraum: **7 Tage**, **30 Tage**, **90 Tage**, **1 Jahr** oder **Alles**.
+3. Fahre mit der Maus über das Diagramm. Du siehst den Preis, um wie viel er sich geändert hat und wie lange er galt.
+4. **Verlauf als Tabelle** listet jede Preisänderung auf. Mit dem Häkchen **Alle Messpunkte zeigen** siehst du jede gespeicherte Messung. **Zum Shop** öffnet die Seite in deinem Browser.
+
+So liest du das Diagramm:
+
+- Eine **grüne Stufe** heißt günstiger, eine **rote Stufe** teurer.
+- **Tief** und **Hoch** markieren den tiefsten und den höchsten Preis im gewählten Zeitraum.
+- Die **gestrichelte Linie** ist der Preis beim Hinzufügen, die **durchgezogene graue Linie** dein Zielpreis.
+- **Grau hinterlegt** ist die Zeit, in der das Produkt nicht lieferbar war.
+
+Die Kacheln über dem Diagramm zeigen den tiefsten und höchsten Preis mit Datum und wie weit der aktuelle Preis über oder unter dem Durchschnitt liegt.
 
 Die App merkt sich den Preis beim Hinzufügen. Oben in der Detailansicht und auf jeder Karte siehst du, was sich seitdem getan hat, zum Beispiel **Seit Hinzufügen: ▼ 105,00 € (−19,1 %)**. Über **Sortieren** → **Größte Ersparnis** stehen die besten Treffer oben.
 
-In der Übersicht heißt **▼** günstiger und **▲** teurer. Ein grüner Strich links an der Karte markiert Produkte, die günstiger geworden sind, seit du zuletzt nachgesehen hast.
+In der Übersicht heißt **▼** günstiger und **▲** teurer. Die farbige Pille neben dem Preis zeigt die letzte Änderung in Prozent. Ein grüner Strich links an der Karte markiert Produkte, die günstiger geworden sind, seit du zuletzt nachgesehen hast.
+
+## Die Übersicht ordnen
+
+- **Abzeichen** sagen dir, ob jetzt ein guter Zeitpunkt ist: **Zielpreis erreicht**, **Tiefstpreis seit 45 Tagen**, **Bester Preis bisher** (bei kürzerem Verlauf) oder **Unter dem Durchschnitt** (mindestens 3 % unter dem Schnitt der letzten 30 Tage).
+- Hast du einen Zielpreis eingetragen, zeigt ein **Balken** auf der Karte, wie weit der Weg vom Preis beim Hinzufügen bis zum Ziel schon geschafft ist, zum Beispiel **noch 29,00 € bis Ziel 450,00 €**.
+- Über der Liste stehen **Filter** mit der Anzahl der Treffer: **Zielpreis erreicht**, **Mit Problem**, **Pausiert**, **Nicht lieferbar**. Klicke auf **Alle**, um wieder alles zu sehen. Ein Filter ohne Treffer wird ausgeblendet.
+- Oben rechts schaltest du zwischen **Kacheln** und **Liste** um. Die Liste zeigt jedes Produkt in einer Zeile, praktisch bei vielen Produkten. Die App merkt sich deine Wahl.
+
+## Ein Produkt umbenennen oder eine Notiz anlegen
+
+Shop-Namen sind oft sehr lang. Du kannst jedem Produkt einen eigenen Namen und eine Notiz geben.
+
+1. Klicke in der Übersicht auf das Produkt und scrolle zu **Einstellungen für dieses Produkt**.
+2. Trage unter **Eigener Name** einen kurzen Namen ein, zum Beispiel **Unsere Kaffeemaschine**.
+3. Schreib bei Bedarf unter **Notiz** etwas dazu, zum Beispiel **Erst im Angebot kaufen**.
+4. Klicke auf **Speichern**.
+
+Der eigene Name erscheint in der Übersicht, in der Detailansicht und in den Benachrichtigungen. Den Namen aus dem Shop siehst du klein darunter. Die Notiz steht auf der Karte und über dem Diagramm, die Suche findet auch Wörter aus der Notiz. Leerst du das Feld **Eigener Name** und speicherst, gilt wieder der Name aus dem Shop.
+
+## Den Preisverlauf als CSV-Datei speichern
+
+1. Klicke in der Übersicht auf das Produkt.
+2. Klappe unter dem Diagramm **Verlauf als Tabelle** auf.
+3. Klicke auf **Als CSV speichern …**, wähle einen Ordner und klicke auf **Speichern**. Vorgeschlagen wird der Download-Ordner.
+
+Die Datei `preisverlauf-NAME-JJJJ-MM-TT.csv` enthält alle Messpunkte mit Datum, Preis, Änderung und Lagerstatus. Sie öffnet sich per Doppelklick in Excel oder LibreOffice Calc direkt mit richtigen Spalten.
 
 ## Zielpreis und Benachrichtigungen einstellen
 

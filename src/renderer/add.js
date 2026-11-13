@@ -1,6 +1,6 @@
 // Produkt per Link hinzufügen: Link einfügen → Seite lesen → prüfen → verfolgen.
 import { rpc } from './rpc.js';
-import { formatPrice, stockLabel } from '../lib/format.js';
+import { formatPrice, stockLabel, displayName } from '../lib/format.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -93,7 +93,7 @@ function showResult({ result, error, status, tracked }, url) {
   failedUrl = null;
   if (tracked) {
     $('add-url').value = '';
-    showBox(h('p', {}, `„${tracked.name}“ wird bereits verfolgt. `,
+    showBox(h('p', {}, `„${displayName(tracked)}“ wird bereits verfolgt. `,
       h('a', { href: `#/p/${tracked.id}`, text: 'Zum Preisverlauf', onclick: closeBox })));
   } else if (result && result.options.length) {
     renderPreview(result);

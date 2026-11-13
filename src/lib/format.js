@@ -9,6 +9,19 @@ export function formatPrice(value, currency = 'EUR') {
   }
 }
 
+/** Anzeigename: eigener Name, sonst der Name aus dem Shop. */
+export function displayName(p) {
+  const own = p && typeof p.customName === 'string' ? p.customName.trim() : '';
+  return own || (p && p.name) || '';
+}
+
+/** Eigene Texte begrenzen: leer wird null, zu lang wird gekürzt. */
+export function cleanText(v, max) {
+  if (typeof v !== 'string') return null;
+  const s = v.replace(/\r\n?/g, '\n').trim();
+  return s ? s.slice(0, max) : null;
+}
+
 export function stockLabel(status) {
   switch (status) {
     case 'in_stock': return 'Lieferbar';

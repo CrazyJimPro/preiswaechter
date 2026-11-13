@@ -15,7 +15,8 @@ import {
 } from './autostart.js';
 import { canIntegrate, installMenuEntry, removeMenuEntry } from './desktop.js';
 import { notificationsFor, notificationText } from '../lib/rules.js';
-import { formatPrice } from '../lib/format.js';
+import { formatPrice, cleanText } from '../lib/format.js';
+import { historyCsv, csvFileName } from '../lib/csv.js';
 import { buildBackup, planImport } from '../lib/backup.js';
 import { isNewer } from '../lib/version.js';
 import { THEMES } from '../lib/constants.js';
@@ -81,7 +82,7 @@ function onProductChecked(event) {
 // ---------- Aufrufe aus der Oberfläche ----------
 
 // Nur Einstellungen, die die Oberfläche ändern darf
-const PRODUCT_FIELDS = ['intervalMin', 'targetPrice', 'dropThreshold', 'notifyStock', 'paused', 'nextCheck'];
+const PRODUCT_FIELDS = ['intervalMin', 'targetPrice', 'dropThreshold', 'notifyStock', 'paused', 'nextCheck', 'customName', 'note'];
 const SETTING_FIELDS = ['defaultIntervalMin', 'notifications', 'theme'];
 const BACKGROUND = { dark: '#1a1a2e', light: '#f7f1e8' };
 
@@ -117,7 +118,12 @@ const methods = {
     return store.saveSettings(clean);
   },
   deleteProduct: (id) => store.deleteProduct(id),
-  updateProduct: (id, patch) => store.updateProduct(id, pick(patch, PRODUCT_FIELDS)),
+  updateProduct(id, patch) {
+    const clean = pick(patch, PRODUCT_FIELDS);
+    if ('customName' in clean) clean.customName = cleanText(clean.customName, 200);
+    if ('note' in clean) clean.note = cleanText(clean.note, 2000);
+    return store.updateProduct(id, clean);
+  },
   analyseUrl: (url) => analyse(url, readPage),
   analyseInWindow: (url) => analyse(url, readVisible),
   addProduct: (data) => store.addProduct(data),
@@ -194,6 +200,23 @@ const methods = {
       file = res.filePath;
     }
     fs.writeFileSync(file, JSON.stringify(buildBackup(store.allData()), null, 2));
+    return file;
+  },
+  /** Preisverlauf eines Produkts als CSV speichern (mit BOM, damit Excel die Umlaute erkennt). */
+  async exportCsv(id, testPath) {
+    const product = store.getProduct(id);
+    if (!product) return null;
+    let file = IS_TEST ? testPath : null;
+    if (!file) {
+      const res = await dialog.showSaveDialog(mainWindow, {
+        title: 'Preisverlauf speichern',
+        defaultPath: path.join(app.getPath('downloads'), csvFileName(product)),
+        filters: [{ name: 'CSV-Datei (Excel)', extensions: ['csv'] }],
+      });
+      if (res.canceled || !res.filePath) return null;
+      file = res.filePath;
+    }
+    fs.writeFileSync(file, `﻿${historyCsv(product, store.getHistory(id))}`, 'utf8');
     return file;
   },
   /** Sicherung auswählen und prüfen; eingespielt wird erst mit applyImport. */

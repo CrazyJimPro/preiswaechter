@@ -1,4 +1,5 @@
 // Datensicherung: Export-Format bauen und Import planen (ohne Browser-API, testbar).
+import { cleanText } from './format.js';
 
 export const BACKUP_APP = 'preiswaechter';
 export const BACKUP_VERSION = 1;
@@ -75,6 +76,8 @@ export function planImport(data, existing, { now = Date.now(), newId } = {}) {
       id,
       url: raw.url,
       name: raw.name.slice(0, 300),
+      customName: cleanText(raw.customName, 200),
+      note: cleanText(raw.note, 2000),
       imageUrl: typeof raw.imageUrl === 'string' && validUrl(raw.imageUrl) ? raw.imageUrl : null,
       shop: typeof raw.shop === 'string' ? raw.shop : null,
       currency: typeof raw.currency === 'string' && /^[A-Z]{3}$/.test(raw.currency) ? raw.currency : 'EUR',

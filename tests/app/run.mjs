@@ -285,6 +285,29 @@ try {
   await sleep(300);
   p = await productBy('p.html');
   ok(p.targetPrice === 1050.5 && p.dropThreshold === 5 && p.intervalMin === 360, 'Einstellungen je Produkt gespeichert');
+
+  console.log('Umbenennen, Notiz, CSV');
+  await page.evaluate(() => {
+    const f = document.getElementById('settings');
+    f.customName.value = '  Unsere Kaffeemaschine  '; f.note.value = 'Erst im Angebot kaufen'; f.requestSubmit();
+  });
+  await sleep(400);
+  p = await productBy('p.html');
+  ok(p.customName === 'Unsere Kaffeemaschine' && p.note === 'Erst im Angebot kaufen', 'eigener Name und Notiz gespeichert');
+  const head = await page.evaluate(() => ({
+    name: document.getElementById('d-name').textContent,
+    orig: document.getElementById('d-origname').hidden ? '' : document.getElementById('d-origname').textContent,
+    note: document.getElementById('d-note').hidden ? '' : document.getElementById('d-note').textContent,
+  }));
+  ok(head.name === 'Unsere Kaffeemaschine' && head.orig.includes('Kaffeevollautomat') && head.note === 'Erst im Angebot kaufen', 'Detailkopf: eigener Name, Shop-Name, Notiz');
+  const csvFile = path.join(userData, 'verlauf.csv');
+  ok((await call('exportCsv', p.id, csvFile)) === csvFile, 'CSV gespeichert');
+  const csv = fs.readFileSync(csvFile, 'utf8');
+  ok(csv.startsWith('﻿Produkt;Unsere Kaffeemaschine') && csv.includes(';444,00;EUR;-105,00;-19,1;Lieferbar'), 'CSV: BOM, Name, Preis und Änderung');
+  await call('updateProduct', p.id, { customName: '', note: '' });
+  await sleep(300);
+  p = await productBy('p.html');
+  ok(p.customName === null && p.note === null && (await page.evaluate(() => document.getElementById('d-name').textContent)).includes('Kaffeevollautomat'), 'leerer Name: wieder Shop-Name');
   state.price = 400;
   await call('checkNow', p.id);
   await sleep(500);

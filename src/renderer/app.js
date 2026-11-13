@@ -1,6 +1,6 @@
 import { rpc, onChanged } from './rpc.js';
 import { INTERVALS } from '../lib/constants.js';
-import { formatPrice, stockLabel, timeAgo, timeUntil, changeText } from '../lib/format.js';
+import { formatPrice, stockLabel, timeAgo, timeUntil, changeText, displayName } from '../lib/format.js';
 import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded, changesOnly, extremes, assess, targetProgress } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
@@ -71,7 +71,7 @@ function rangeFrom(key) {
 function sortProducts(list) {
   const arr = [...list];
   switch (state.sort) {
-    case 'name': return arr.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    case 'name': return arr.sort((a, b) => displayName(a).localeCompare(displayName(b), 'de'));
     case 'checked': return arr.sort((a, b) => (b.lastChecked || 0) - (a.lastChecked || 0));
     case 'drop': {
       const pct = (p) => (priceChange(p.currentPrice, p.previousPrice) || { pct: 0 }).pct;
@@ -134,10 +134,11 @@ function productCard(p) {
   return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: openProduct(p) },
     thumb(p.imageUrl, 'thumb'),
     h('div', { class: 'body' },
-      h('div', { class: 'name', text: p.name, title: p.name }),
+      h('div', { class: 'name', text: displayName(p), title: displayName(p) }),
       h('div', { class: 'meta' },
         p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
         meta),
+      p.note ? h('div', { class: 'note-line', title: p.note, text: `✎ ${p.note}` }) : null,
       h('div', { class: 'bottom' },
         h('div', { class: 'price-line' },
           h('span', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
@@ -160,7 +161,7 @@ function productRow(p) {
   return h('button', { class: `card row${state.unread.has(p.id) ? ' fresh' : ''}`, type: 'button', onclick: openProduct(p) },
     thumb(p.imageUrl, 'thumb'),
     h('div', { class: 'body' },
-      h('div', { class: 'name', text: p.name, title: p.name }),
+      h('div', { class: 'name', text: displayName(p), title: displayName(p) }),
       h('div', { class: 'meta' },
         p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
         meta)),
@@ -189,7 +190,7 @@ function renderList() {
   const q = state.search.trim().toLowerCase();
   const filterFn = (FILTERS.find(([k]) => k === state.filter) || FILTERS[0])[2];
   const list = sortProducts(state.products).filter(
-    (p) => filterFn(p) && (!q || p.name.toLowerCase().includes(q) || (p.shop || '').toLowerCase().includes(q)),
+    (p) => filterFn(p) && (!q || [displayName(p), p.name, p.shop, p.note].some((s) => (s || '').toLowerCase().includes(q))),
   );
   const compact = state.view === 'list';
   $('cards').className = compact ? 'cards compact' : 'cards';
@@ -210,14 +211,18 @@ function renderDetail() {
   const p = state.products.find((x) => x.id === state.detailId);
   if (!p) { location.hash = ''; return; }
   const hist = state.histories.get(p.id) || [];
-  document.title = `${p.name} – Preiswächter`;
+  document.title = `${displayName(p)} – Preiswächter`;
 
   const img = $('d-img');
   const head = document.querySelector('.detail-head');
   head.classList.toggle('noimg', !p.imageUrl);
   img.onerror = () => head.classList.add('noimg');
   if (p.imageUrl && img.getAttribute('src') !== p.imageUrl) img.src = p.imageUrl;
-  $('d-name').textContent = p.name;
+  $('d-name').textContent = displayName(p);
+  $('d-origname').hidden = displayName(p) === p.name;
+  $('d-origname').textContent = `Im Shop: ${p.name}`;
+  $('d-note').hidden = !p.note;
+  $('d-note').textContent = p.note || '';
   const meta = [
     p.shop,
     stockLabel(p.stockStatus),
@@ -334,6 +339,9 @@ function fillForm(p) {
   f.dropThreshold.value = p.dropThreshold != null ? String(p.dropThreshold).replace('.', ',') : '';
   f.notifyStock.checked = p.notifyStock !== false;
   f.paused.checked = !!p.paused;
+  f.customName.value = p.customName || '';
+  f.customName.placeholder = p.name;
+  f.note.value = p.note || '';
   rpc.getSettings().then((st) => { $('notify-off').hidden = st.notifications !== false; });
   $('s-saved').hidden = true;
 }
@@ -364,10 +372,23 @@ $('settings').addEventListener('submit', async (e) => {
   if (intervalMin !== p.intervalMin || (p.paused && !paused)) nextCheck = Math.max(Date.now() + 30 * 1000, base + intervalMin * 60 * 1000);
   await rpc.updateProduct(p.id, {
     intervalMin, targetPrice, dropThreshold, notifyStock: f.notifyStock.checked, paused, nextCheck,
+    customName: f.customName.value, note: f.note.value,
   });
   formFor = null; // Formular nach dem Speichern neu füllen
   $('s-saved').hidden = false;
   setTimeout(() => { $('s-saved').hidden = true; }, 2500);
+});
+
+$('d-csv').addEventListener('click', async () => {
+  const out = $('d-csv-result');
+  try {
+    const file = await rpc.exportCsv(state.detailId);
+    out.hidden = !file;
+    out.textContent = file ? `Gespeichert: ${file}` : '';
+  } catch (err) {
+    out.hidden = false;
+    out.textContent = `Speichern fehlgeschlagen: ${err.message || err}`;
+  }
 });
 
 $('d-check').addEventListener('click', async () => {
@@ -420,6 +441,7 @@ function route() {
   $('detail-view').hidden = !state.detailId;
   $('settings-view').hidden = !state.settingsOpen;
   formFor = null;
+  $('d-csv-result').hidden = true;
   if (state.detailId) {
     rpc.markRead(state.detailId);
     renderDetail();

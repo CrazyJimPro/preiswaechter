@@ -1,4 +1,5 @@
 // Wann wird benachrichtigt? Reine Funktionen, unter Node testbar.
+import { displayName } from './format.js';
 
 /**
  * Ermittelt die Meldungen für ein Prüfergebnis.
@@ -36,7 +37,8 @@ export function notificationsFor(event, settings) {
 
 /** Titel und Text einer Meldung (deutsch). `fmt(price)` formatiert einen Betrag. */
 export function notificationText(n, product, fmt) {
-  const name = product.name.length > 90 ? product.name.slice(0, 87) + '…' : product.name;
+  const full = displayName(product);
+  const name = full.length > 90 ? full.slice(0, 87) + '…' : full;
   switch (n.kind) {
     case 'target':
       return {

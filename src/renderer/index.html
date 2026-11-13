@@ -64,9 +64,11 @@
         <div class="detail-img"><img id="d-img" alt=""></div>
         <div class="detail-info">
           <h2 id="d-name"></h2>
+          <div class="muted small" id="d-origname" hidden></div>
           <div class="muted" id="d-meta"></div>
           <div class="detail-price"><span id="d-price"></span> <span id="d-change"></span> <span id="d-badge"></span></div>
           <p id="d-since" class="since-line" hidden></p>
+          <p id="d-note" class="note" hidden></p>
           <div class="actions">
             <button id="d-shop" type="button">Zum Shop ↗</button>
             <button id="d-check">Jetzt prüfen</button>
@@ -87,8 +89,12 @@
           <summary>Verlauf als Tabelle</summary>
           <div class="history-head">
             <span class="muted small" id="history-note"></span>
-            <label><input type="checkbox" id="history-all"> Alle Messpunkte zeigen</label>
+            <span class="history-tools">
+              <label><input type="checkbox" id="history-all"> Alle Messpunkte zeigen</label>
+              <button id="d-csv" type="button" title="Alle Messpunkte als CSV-Datei, z. B. für Excel">Als CSV speichern …</button>
+            </span>
           </div>
+          <p id="d-csv-result" class="muted small" hidden></p>
           <table>
             <thead><tr><th>Zeitpunkt</th><th>Preis</th><th>Änderung</th><th>Lagerstatus</th></tr></thead>
             <tbody id="history-rows"></tbody>
@@ -99,6 +105,12 @@
       <div class="panel">
         <h3>Einstellungen für dieses Produkt</h3>
         <form id="settings" class="settings">
+          <label class="wide">Eigener Name
+            <input type="text" name="customName" maxlength="200" autocomplete="off">
+          </label>
+          <label class="wide">Notiz
+            <textarea name="note" rows="2" maxlength="2000" placeholder="z. B. erst kaufen, wenn unter 450 €"></textarea>
+          </label>
           <label>Prüfen alle
             <select name="intervalMin" id="s-interval"></select>
           </label>
