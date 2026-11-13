@@ -96,6 +96,8 @@ try {
   page.on('console', (m) => { if (m.type() === 'error' && !/ERR_|Failed to load resource/.test(m.text())) pageErrors.push(m.text()); });
   await page.waitForSelector('#add-form', { timeout: 10000 });
   const shot = async (name) => {
+    // DUMP=<Ordner>: gerenderte Seiten als HTML speichern (Design ansehen ohne sichtbares Fenster)
+    if (process.env.DUMP) { await sleep(300); fs.writeFileSync(path.join(process.env.DUMP, `${name}.html`), await page.content()); }
     if (!SHOTS_ON) return;
     fs.mkdirSync(SHOTS, { recursive: true });
     await sleep(300);
@@ -424,12 +426,12 @@ try {
     return [...document.fonts].some((f) => f.family.includes('Plus Jakarta Sans') && f.status === 'loaded');
   }), 'Schrift Plus Jakarta Sans geladen');
   await pickTheme('dark');
-  ok((await isDark()) && (await bodyBg()) === 'rgb(26, 26, 46)', `Mitternacht: Hintergrund ${await bodyBg()}`);
+  ok((await isDark()) && (await bodyBg()) === 'rgb(20, 21, 42)', `Mitternacht: Hintergrund ${await bodyBg()}`);
   ok((await call('getSettings')).theme === 'dark', 'Mitternacht gespeichert');
   await themeShots('mitternacht');
   ok((await page.evaluate(() => document.getElementById('o-theme').value)) === 'dark', 'Auswahl zeigt Mitternacht');
   await pickTheme('light');
-  ok(!(await isDark()) && (await bodyBg()) === 'rgb(247, 241, 232)', `Hell: Hintergrund ${await bodyBg()}`);
+  ok(!(await isDark()) && (await bodyBg()) === 'rgb(246, 240, 230)', `Hell: Hintergrund ${await bodyBg()}`);
   await themeShots('hell');
   await call('saveSettings', { theme: 'lila' });
   ok((await call('getSettings')).theme === 'light', 'unbekanntes Design abgelehnt');
@@ -513,7 +515,7 @@ try {
   await again.waitForSelector('#add-form', { timeout: 10000 });
   ok((await again.evaluate(() => window.pw.call('listProducts'))).length === 3, 'Produkte wieder da');
   ok(await again.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches), 'Mitternacht bleibt erhalten');
-  ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(26, 26, 46)', 'Hintergrund nach dem Neustart Mitternacht');
+  ok((await again.evaluate(() => getComputedStyle(document.body).backgroundColor)) === 'rgb(20, 21, 42)', 'Hintergrund nach dem Neustart Mitternacht');
 
   console.log('Nach einem Update');
   await again.waitForFunction(() => document.getElementById('app-version').textContent === 'v9.9.9', { timeout: 3000 });

@@ -84,7 +84,7 @@ function onProductChecked(event) {
 // Nur Einstellungen, die die Oberfläche ändern darf
 const PRODUCT_FIELDS = ['intervalMin', 'targetPrice', 'dropThreshold', 'notifyStock', 'paused', 'nextCheck', 'customName', 'note'];
 const SETTING_FIELDS = ['defaultIntervalMin', 'notifications', 'theme'];
-const BACKGROUND = { dark: '#1a1a2e', light: '#f7f1e8' };
+const BACKGROUND = { dark: '#14152a', light: '#f6f0e6' };
 
 /** Steuert prefers-color-scheme in allen Fenstern, die Farben stehen in der CSS-Datei. */
 function applyTheme(theme) {

@@ -9,17 +9,18 @@
 
 /* Aufbau wie im Abo-Tracker. Hell: warmes Creme und Hellbraun. Bei dunkler Einstellung Mitternacht (Navy mit Gold) */
 :root {
-  --bg: #f7f1e8;
-  --body-gradient: linear-gradient(135deg, #faf6ef 0%, #f5ede0 25%, #efe3d2 50%, #e9dac5 75%, #f3ebdf 100%);
-  --glass: rgba(255, 252, 247, .6);
-  --glass-ring: rgba(62, 39, 20, .1);
-  --glass-header: rgba(255, 252, 247, .45);
+  /* Hell, klar statt milchig: feste Flächen, dezente Flecken, deutliche Kanten */
+  --bg: #f6f0e6;
+  --body-gradient: linear-gradient(180deg, #f8f3ea 0%, #f1e8db 100%);
+  --glass: rgba(255, 253, 249, .95);
+  --glass-ring: rgba(62, 39, 20, .12);
+  --glass-header: rgba(250, 246, 239, .92);
   --popover: #fffdf9;
-  --field: rgba(255, 252, 247, .65);
-  --surface: rgba(62, 39, 20, .05);
-  --border: rgba(62, 39, 20, .14);
-  --text: #3b2a1c;
-  --muted: rgba(59, 42, 28, .7);
+  --field: #fffdf9;
+  --surface: rgba(62, 39, 20, .055);
+  --border: rgba(62, 39, 20, .17);
+  --text: #33241a;
+  --muted: rgba(51, 36, 26, .74);
   --accent: #a8764a;
   --accent-from: #a8764a;
   --accent-to: #8b5e36;
@@ -33,36 +34,39 @@
   --orb-1: #c89b6c;
   --orb-2: #d9b88f;
   --orb-3: #b08968;
-  --orb-opacity: .25;
+  --orb-opacity: .1;
+  --shadow: 0 1px 2px rgba(62, 39, 20, .06), 0 8px 20px -8px rgba(62, 39, 20, .18);
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
+  /* Mitternacht, klar statt milchig: feste Flächen, dezente Flecken, deutliche Kanten */
   :root {
-    --bg: #1a1a2e;
-    --body-gradient: linear-gradient(180deg, #1a1a2e 0%, #16162a 100%);
-    --glass: rgba(245, 240, 230, .06);
-    --glass-ring: rgba(212, 175, 55, .18);
-    --glass-header: rgba(255, 255, 255, .05);
-    --popover: #20203a;
-    --field: rgba(245, 240, 230, .06);
-    --surface: rgba(245, 240, 230, .08);
-    --border: rgba(212, 175, 55, .2);
-    --text: #f5f0e6;
-    --muted: rgba(245, 240, 230, .65);
-    --accent: #d4af37;
+    --bg: #14152a;
+    --body-gradient: linear-gradient(180deg, #181a33 0%, #121326 100%);
+    --glass: rgba(33, 35, 64, .94);
+    --glass-ring: rgba(255, 255, 255, .09);
+    --glass-header: rgba(20, 21, 42, .9);
+    --popover: #25284a;
+    --field: #1b1d38;
+    --surface: rgba(255, 255, 255, .07);
+    --border: rgba(255, 255, 255, .14);
+    --text: #f6f2ea;
+    --muted: rgba(236, 231, 222, .74);
+    --accent: #e0b94a;
     --accent-from: #f4d160;
-    --accent-to: #a08628;
-    --accent-shadow: rgba(212, 175, 55, .4);
-    --accent-text: #1a1a2e;
-    --link: #d4af37;
-    --down: #34d399;
-    --up: #fb7185;
-    --warn-bg: rgba(212, 175, 55, .14);
+    --accent-to: #c9a032;
+    --accent-shadow: rgba(224, 185, 74, .3);
+    --accent-text: #15162b;
+    --link: #edc75a;
+    --down: #3ddc97;
+    --up: #ff7a8f;
+    --warn-bg: rgba(224, 185, 74, .14);
     --warn-text: #f4d160;
-    --orb-1: #d4af37;
-    --orb-2: #c9a876;
-    --orb-3: #a08628;
-    --orb-opacity: .2;
+    --orb-1: #4a56c8;
+    --orb-2: #d4af37;
+    --orb-3: #6a4bc0;
+    --orb-opacity: .09;
+    --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 10px 24px -8px rgba(0, 0, 0, .55);
   }
 }
 * { box-sizing: border-box; }

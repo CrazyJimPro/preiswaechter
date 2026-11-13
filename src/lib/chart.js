@@ -164,10 +164,11 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
   }
 
   // Preis beim Hinzufügen als gestrichelte Bezugslinie, Beschriftung links im Diagramm
+  let addedLabel = null;
   if (showAdded) {
     const ay = y(addedPrice);
     el('line', { x1: m.left, x2: m.left + pw, y1: ay, y2: ay, class: 'added' }, svg);
-    text(svg, m.left + 6, ay - 5, `beim Hinzufügen ${axisPrice(addedPrice, currency, 2)}`, { class: 'axis added-label' });
+    addedLabel = text(svg, m.left + 6, ay - 5, `beim Hinzufügen ${axisPrice(addedPrice, currency, 2)}`, { class: 'axis added-label' });
   }
 
   // Zielpreis als Bezugslinie mit Beschriftung
@@ -209,9 +210,19 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
       // Am Rand nach innen ausrichten, damit die Beschriftung nicht in die Achse ragt
       const anchor = ex0 < m.left + 50 ? 'start' : ex0 > m.left + pw - 50 ? 'end' : 'middle';
       const lx = anchor === 'start' ? ex0 + 4 : anchor === 'end' ? ex0 - 4 : ex0;
-      text(svg, lx, below ? ey + 16 : ey - 8, `${kind === 'min' ? 'Tief' : 'Hoch'} ${axisPrice(e.price, currency, 2)}`, {
-        'text-anchor': anchor, class: `mark-label ${kind}`,
-      });
+      const label = `${kind === 'min' ? 'Tief' : 'Hoch'} ${axisPrice(e.price, currency, 2)}`;
+      const ly = below ? ey + 16 : ey - 8;
+      text(svg, lx, ly, label, { 'text-anchor': anchor, class: `mark-label ${kind}` });
+      // Überdeckt die Markierung die Beschriftung „beim Hinzufügen“ links? Dann die ans rechte Ende schieben.
+      if (addedLabel && Math.abs(ly - Number(addedLabel.getAttribute('y'))) < 13) {
+        const w = label.length * 6.5; // grobe Breite bei 11px
+        const left = anchor === 'start' ? lx : anchor === 'end' ? lx - w : lx - w / 2;
+        const addedRight = m.left + 6 + addedLabel.textContent.length * 6;
+        if (left < addedRight) {
+          addedLabel.setAttribute('x', m.left + pw - 6);
+          addedLabel.setAttribute('text-anchor', 'end');
+        }
+      }
     }
   }
 
