@@ -80,8 +80,12 @@
         <div id="chart"></div>
         <details class="history">
           <summary>Verlauf als Tabelle</summary>
+          <div class="history-head">
+            <span class="muted small" id="history-note"></span>
+            <label><input type="checkbox" id="history-all"> Alle Messpunkte zeigen</label>
+          </div>
           <table>
-            <thead><tr><th>Zeitpunkt</th><th>Preis</th><th>Lagerstatus</th></tr></thead>
+            <thead><tr><th>Zeitpunkt</th><th>Preis</th><th>Änderung</th><th>Lagerstatus</th></tr></thead>
             <tbody id="history-rows"></tbody>
           </table>
         </details>

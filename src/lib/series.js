@@ -9,6 +9,7 @@ export const RANGES = [
   ['7', '7 Tage', 7 * DAY],
   ['30', '30 Tage', 30 * DAY],
   ['90', '90 Tage', 90 * DAY],
+  ['365', '1 Jahr', 365 * DAY],
   ['all', 'Alles', Infinity],
 ];
 
@@ -26,8 +27,71 @@ export function seriesInRange(history, from, to) {
     if (p.t < start) carry = p;
     else if (p.t <= to) out.push(p);
   }
-  if (carry && (!out.length || out[0].t > start)) out.unshift({ ...carry, t: start, carried: true });
+  // origT: Seit wann der übernommene Preis wirklich galt (für Datumsangaben)
+  if (carry && (!out.length || out[0].t > start)) out.unshift({ ...carry, t: start, origT: carry.t, carried: true });
   return out;
+}
+
+/**
+ * Nur die Punkte, an denen sich Preis oder Lagerstatus geändert hat (der erste Punkt
+ * zählt immer). Jeder Punkt bekommt `change` = Änderung zum vorherigen Preis oder null.
+ * Wiederholte Punkte mit gleichem Preis und Lagerstatus (Lebenszeichen) fallen weg.
+ */
+export function changesOnly(points) {
+  const sorted = (points || []).filter((p) => p && p.price != null).sort((a, b) => a.t - b.t);
+  const out = [];
+  for (const p of sorted) {
+    const prev = out[out.length - 1];
+    if (prev && prev.price === p.price && (prev.stock || 'unknown') === (p.stock || 'unknown')) continue;
+    out.push({ ...p, change: prev ? priceChange(p.price, prev.price) : null });
+  }
+  return out;
+}
+
+/** Wie lange galt der Punkt `i` (bis zum nächsten Punkt bzw. bis `to`)? In Millisekunden. */
+export function durationOf(points, i, to) {
+  const p = points[i];
+  if (!p) return 0;
+  const start = p.origT ?? p.t;
+  const end = i + 1 < points.length ? points[i + 1].t : Math.max(to, p.t);
+  return Math.max(0, end - start);
+}
+
+/**
+ * Tiefst- und Höchstpreis im Zeitraum mit dem Punkt, an dem er zuletzt begann.
+ * `t` ist die Stelle im Diagramm, `since` der echte Beginn (bei übernommenem Startpreis früher),
+ * `current` sagt, ob der Preis noch gilt.
+ */
+export function extremes(points) {
+  if (!points || !points.length) return null;
+  const pick = (better) => {
+    let idx = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i].price;
+      const b = points[idx].price;
+      // bei Gleichstand gewinnt der spätere Abschnitt, aber nur, wenn der Preis dazwischen anders war
+      if (better(a, b) || (a === b && points[i - 1].price !== a)) idx = i;
+    }
+    const p = points[idx];
+    return { price: p.price, t: p.t, since: p.origT ?? p.t, current: points.slice(idx).every((q) => q.price === p.price) };
+  };
+  return { min: pick((a, b) => a < b), max: pick((a, b) => a > b) };
+}
+
+/** Zeitabschnitte, in denen der Artikel nicht lieferbar war: [{from, to}]. */
+export function stockGaps(points, to) {
+  const gaps = [];
+  let open = null;
+  for (const p of points || []) {
+    if (p.stock === 'out_of_stock') {
+      if (open == null) open = p.t;
+    } else if (open != null) {
+      gaps.push({ from: open, to: p.t });
+      open = null;
+    }
+  }
+  if (open != null) gaps.push({ from: open, to: Math.max(to, open) });
+  return gaps;
 }
 
 /** Tiefst-, Höchst- und zeitgewichteter Durchschnittspreis im Zeitraum. */

@@ -235,6 +235,26 @@ try {
   ok((await page.evaluate(() => document.getElementById('d-change').textContent)) === '', 'bei nur einer Änderung nichts doppelt');
   const sinceLine = await page.evaluate(() => document.getElementById('d-since').textContent);
   ok(sinceLine.includes('549,00') && sinceLine.includes('▼ 105,00'), `Kopf: ${sinceLine}`);
+  const chartInfo = await page.evaluate(() => ({
+    steps: document.querySelectorAll('#chart .step.down').length,
+    tiles: document.getElementById('tiles').innerText,
+    legend: document.querySelector('#chart .chart-legend')?.innerText || '',
+    ranges: [...document.querySelectorAll('#ranges button')].map((b) => b.textContent).join(','),
+  }));
+  ok(chartInfo.steps === 1, 'Diagramm: Preissenkung grün markiert');
+  ok(chartInfo.tiles.includes('aktuell, seit'), 'Kachel: Tiefstpreis mit Datum');
+  ok(chartInfo.legend.includes('Beim Hinzufügen'), 'Legende: Preis beim Hinzufügen');
+  ok(chartInfo.ranges.includes('1 Jahr'), 'Zeitraum „1 Jahr“');
+  const svgBox = await (await page.$('#chart svg')).boundingBox();
+  await page.evaluate(() => document.querySelector('#chart svg').dispatchEvent(new FocusEvent('focus')));
+  const tipText = await page.evaluate(() => document.querySelector('#chart .tooltip').textContent);
+  ok(tipText.includes('▼ 105,00') && tipText.includes('gilt seit'), `Tooltip mit Änderung und Dauer${svgBox ? '' : ' (kein Diagramm)'}`);
+  await page.evaluate(() => document.querySelector('#chart svg').dispatchEvent(new FocusEvent('blur')));
+  const rowsChanges = await page.evaluate(() => document.querySelectorAll('#history-rows tr').length);
+  await page.evaluate(() => document.getElementById('history-all').click());
+  const rowsAll = await page.evaluate(() => document.querySelectorAll('#history-rows tr').length);
+  ok(rowsChanges === 2 && rowsAll >= 2 && (await page.evaluate(() => document.getElementById('history-rows').textContent.includes('▼ 105,00'))), `Tabelle: ${rowsChanges} Änderungen, ${rowsAll} Messpunkte`);
+  await page.evaluate(() => document.getElementById('history-all').click());
   await shot('detail');
   await page.evaluate(() => {
     const f = document.getElementById('settings');

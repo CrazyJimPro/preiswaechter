@@ -2,8 +2,10 @@
 // Gestaltung: 2px-Linie als Treppe (ein Preis gilt bis zur nächsten Änderung),
 // Fläche als 10-%-Hauch, feine durchgezogene Rasterlinien, Endpunkt mit Wert,
 // Fadenkreuz + Tooltip bei Maus und Tastatur. Texte nur per textContent.
-import { seriesInRange, niceTicks, timeTicks } from './series.js';
-import { formatPrice, stockLabel } from './format.js';
+// Dazu: Senkungen grün, Erhöhungen rot an den Stufen, Tief/Hoch markiert,
+// Preis beim Hinzufügen gestrichelt, "nicht lieferbar" grau hinterlegt.
+import { seriesInRange, niceTicks, timeTicks, changesOnly, durationOf, extremes, stockGaps } from './series.js';
+import { formatPrice, stockLabel, changeText, durationText } from './format.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -89,7 +91,7 @@ export function priceChart(container, history, opts) {
   }
 }
 
-function drawChart(container, history, { from, to = Date.now(), currency = 'EUR', targetPrice = null } = {}) {
+function drawChart(container, history, { from, to = Date.now(), currency = 'EUR', targetPrice = null, addedPrice = null } = {}) {
   container.replaceChildren();
   container.classList.add('chart');
   const pts = seriesInRange(history, from, to);
@@ -113,8 +115,13 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
   let lo = Math.min(...prices);
   let hi = Math.max(...prices);
   // Zielpreis mit in den sichtbaren Bereich nehmen, wenn er nicht absurd weit weg liegt
-  const showTarget = targetPrice != null && targetPrice > 0 && targetPrice >= lo * 0.5 && targetPrice <= hi * 1.5;
-  if (showTarget) { lo = Math.min(lo, targetPrice); hi = Math.max(hi, targetPrice); }
+  const near = (v) => v != null && v > 0 && v >= lo * 0.5 && v <= hi * 1.5;
+  const showTarget = near(targetPrice);
+  // Preis beim Hinzufügen nur, wenn er sich vom Ziel unterscheidet (sonst doppelte Linie)
+  const showAdded = near(addedPrice) && addedPrice !== targetPrice;
+  for (const v of [showTarget && targetPrice, showAdded && addedPrice]) {
+    if (v) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  }
   const range = hi - lo;
   const nt = niceTicks(lo - range * 0.08, hi + range * 0.08, 4);
   const decimals = nt.ticks.every((v) => Number.isInteger(v)) ? 0 : 2;
@@ -142,6 +149,27 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
   }
   el('line', { x1: m.left, x2: m.left + pw, y1: m.top + ph, y2: m.top + ph, class: 'baseline' }, grid);
 
+  // Farbverlauf für die Fläche (Farben kommen per CSS aus den Design-Variablen)
+  const defs = el('defs', {}, svg);
+  const gradId = `pw-grad-${Math.random().toString(36).slice(2, 8)}`;
+  const grad = el('linearGradient', { id: gradId, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  el('stop', { offset: '0%', class: 'grad-top' }, grad);
+  el('stop', { offset: '100%', class: 'grad-bottom' }, grad);
+
+  // Nicht lieferbar: graue Bänder hinter allem
+  const gaps = stockGaps(pts, t1);
+  for (const g of gaps) {
+    const gx = x(Math.max(g.from, t0));
+    el('rect', { x: gx, y: m.top, width: Math.max(2, x(Math.min(g.to, t1)) - gx), height: ph, class: 'oos' }, svg);
+  }
+
+  // Preis beim Hinzufügen als gestrichelte Bezugslinie, Beschriftung links im Diagramm
+  if (showAdded) {
+    const ay = y(addedPrice);
+    el('line', { x1: m.left, x2: m.left + pw, y1: ay, y2: ay, class: 'added' }, svg);
+    text(svg, m.left + 6, ay - 5, `beim Hinzufügen ${axisPrice(addedPrice, currency, 2)}`, { class: 'axis added-label' });
+  }
+
   // Zielpreis als Bezugslinie mit Beschriftung
   if (showTarget) {
     const ty = y(targetPrice);
@@ -151,14 +179,41 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
 
   // Fläche + Linie
   const line = stepPath(pts, x, y, t1);
-  el('path', { d: `${line}V${m.top + ph}H${x(t0)}Z`, class: 'area' }, svg);
+  el('path', { d: `${line}V${m.top + ph}H${x(t0)}Z`, class: 'area', fill: `url(#${gradId})` }, svg);
   el('path', { d: line, class: 'line' }, svg);
+  // Stufen einfärben: runter grün, rauf rot
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1].price;
+    const b = pts[i].price;
+    if (a === b) continue;
+    const sx = x(pts[i].t);
+    el('line', { x1: sx, x2: sx, y1: y(a), y2: y(b), class: b < a ? 'step down' : 'step up' }, svg);
+  }
 
   // Endpunkt mit Wert (nur hier eine direkte Beschriftung)
   const last = pts[pts.length - 1];
   el('circle', { cx: x(t1), cy: y(last.price), r: 4, class: 'dot' }, svg);
   const endLabel = text(svg, x(t1) + 8, y(last.price) + 4, axisPrice(last.price, currency, 2), { class: 'end-label' });
   if (showTarget && Math.abs(y(targetPrice) - y(last.price)) < 14) endLabel.setAttribute('y', y(last.price) - 8);
+
+  // Tiefst- und Höchstpreis markieren (nur wenn der Preis sich überhaupt bewegt hat)
+  const ex = extremes(pts);
+  if (ex && ex.min.price !== ex.max.price) {
+    for (const [kind, e] of [['min', ex.min], ['max', ex.max]]) {
+      const ex0 = x(e.t);
+      const ey = y(e.price);
+      // Der aktuelle Preis steht schon am rechten Rand, dort keine zweite Beschriftung
+      if (e.current && x(t1) - ex0 < 70) continue;
+      el('circle', { cx: ex0, cy: ey, r: 3.5, class: `mark ${kind}` }, svg);
+      const below = kind === 'min' ? ey + 18 < m.top + ph : ey - 18 < m.top;
+      // Am Rand nach innen ausrichten, damit die Beschriftung nicht in die Achse ragt
+      const anchor = ex0 < m.left + 50 ? 'start' : ex0 > m.left + pw - 50 ? 'end' : 'middle';
+      const lx = anchor === 'start' ? ex0 + 4 : anchor === 'end' ? ex0 - 4 : ex0;
+      text(svg, lx, below ? ey + 16 : ey - 8, `${kind === 'min' ? 'Tief' : 'Hoch'} ${axisPrice(e.price, currency, 2)}`, {
+        'text-anchor': anchor, class: `mark-label ${kind}`,
+      });
+    }
+  }
 
   // Fadenkreuz + Tooltip
   const cross = el('g', { class: 'cross', visibility: 'hidden' }, svg);
@@ -168,14 +223,17 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
   tip.className = 'tooltip';
   tip.hidden = true;
   const tipValue = document.createElement('strong');
+  const tipChange = document.createElement('div');
   const tipDate = document.createElement('div');
+  const tipDur = document.createElement('div');
   const tipStock = document.createElement('div');
   tipDate.className = 'muted';
+  tipDur.className = 'muted';
   tipStock.className = 'muted';
-  tip.append(tipValue, tipDate, tipStock);
+  tip.append(tipValue, tipChange, tipDate, tipDur, tipStock);
 
-  const real = pts.filter((p) => !p.carried);
-  const targets = real.length ? real : pts;
+  // Ziele für Maus und Pfeiltasten: nur echte Änderungen, keine Lebenszeichen
+  const targets = changesOnly(pts);
   let idx = -1;
 
   function show(i) {
@@ -189,13 +247,19 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
     cdot.setAttribute('cy', py);
     cross.setAttribute('visibility', 'visible');
     tipValue.textContent = formatPrice(p.price, currency);
-    tipDate.textContent = fmtFull.format(new Date(p.t));
+    const ch = changeText(p.change, currency);
+    tipChange.textContent = ch ? ch.text : '';
+    tipChange.className = ch ? ch.dir : '';
+    tipChange.hidden = !ch;
+    tipDate.textContent = `${p.carried ? 'seit ' : ''}${fmtFull.format(new Date(p.origT ?? p.t))}`;
+    const dur = durationText(durationOf(targets, idx, t1));
+    tipDur.textContent = idx === targets.length - 1 ? `gilt seit ${dur}` : `galt ${dur}`;
     tipStock.textContent = p.stock && p.stock !== 'unknown' ? stockLabel(p.stock) : '';
     tip.hidden = false;
     const tw = tip.offsetWidth || 160;
     const left = px + 12 + tw > W ? px - 12 - tw : px + 12;
     tip.style.left = `${left}px`;
-    tip.style.top = `${Math.max(0, Math.min(py - 20, H - 70))}px`;
+    tip.style.top = `${Math.max(0, Math.min(py - 20, H - (tip.offsetHeight || 110)))}px`;
   }
   function hide() {
     cross.setAttribute('visibility', 'hidden');
@@ -227,4 +291,24 @@ function drawChart(container, history, { from, to = Date.now(), currency = 'EUR'
   });
 
   container.append(svg, tip);
+
+  // Legende nur für das, was wirklich zu sehen ist
+  const legend = [
+    ['line', 'Preis'],
+    showAdded && ['added', 'Beim Hinzufügen'],
+    showTarget && ['target', 'Zielpreis'],
+    gaps.length && ['oos', 'Nicht lieferbar'],
+  ].filter(Boolean);
+  if (legend.length > 1) {
+    const lg = document.createElement('div');
+    lg.className = 'chart-legend';
+    for (const [cls, label] of legend) {
+      const item = document.createElement('span');
+      const sw = document.createElement('i');
+      sw.className = `sw ${cls}`;
+      item.append(sw, label);
+      lg.append(item);
+    }
+    container.append(lg);
+  }
 }

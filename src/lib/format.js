@@ -45,6 +45,15 @@ export function timeUntil(ts) {
   return `in ${Math.round(h / 24)} Tagen`;
 }
 
+/** Dauer in Worten: "unter einer Stunde", "5 Std.", "3 Tage". */
+export function durationText(ms) {
+  const h = ms / 3600e3;
+  if (h < 1) return 'unter einer Stunde';
+  if (h < 48) return `${Math.round(h)} Std.`;
+  const d = Math.round(h / 24);
+  return `${d} Tage`;
+}
+
 /** "▼ 10,00 € (−5 %)" – Text und Richtung ('down' | 'up') einer Preisänderung. */
 export function changeText(change, currency) {
   if (!change) return null;

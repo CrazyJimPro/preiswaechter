@@ -56,7 +56,33 @@ input[type="search"], input[type="text"] { font: inherit; color: var(--text); ba
 .chart .grid line.baseline { stroke: var(--border); }
 .chart .axis { fill: var(--muted); font-size: 11px; }
 .chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.chart .area { fill: var(--accent); opacity: .1; }
+.chart .grad-top { stop-color: var(--accent); stop-opacity: .3; }
+.chart .grad-bottom { stop-color: var(--accent); stop-opacity: 0; }
+.chart .step { stroke-width: 2.5; stroke-linecap: round; }
+.chart .step.down { stroke: var(--down); }
+.chart .step.up { stroke: var(--up); }
+.chart .oos { fill: var(--muted); opacity: .12; }
+.chart .added { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 4; }
+.chart .added-label { fill: var(--muted); }
+.chart .mark { stroke: var(--bg); stroke-width: 2; }
+.chart .mark.min { fill: var(--down); }
+.chart .mark.max { fill: var(--up); }
+.chart .mark-label { font-size: 11px; font-weight: 600; }
+.chart .mark-label.min { fill: var(--down); }
+.chart .mark-label.max { fill: var(--up); }
+.chart .tooltip .down, .chart .tooltip .up { font-weight: 600; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; padding-left: 70px; font-size: 12px; color: var(--muted); }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend .sw { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--accent); }
+.chart-legend .sw.added { border-top: 1px dashed var(--muted); }
+.chart-legend .sw.target { border-top: 1px solid var(--muted); }
+.chart-legend .sw.oos { height: 10px; border: none; border-radius: 2px; background: var(--muted); opacity: .3; }
+.tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tile .sub.down { color: var(--down); }
+.tile .sub.up { color: var(--up); }
+.history-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.history-head label { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.history td.down, .history td.up { font-variant-numeric: tabular-nums; }
 .chart .dot { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
 .chart .end-label { fill: var(--text); font-size: 12px; font-weight: 600; }
 .chart .target { stroke: var(--muted); stroke-width: 1; shape-rendering: crispEdges; }
@@ -70,7 +96,7 @@ input[type="search"], input[type="text"] { font: inherit; color: var(--text); ba
 .history summary { cursor: pointer; color: var(--muted); }
 .history table { border-collapse: collapse; margin-top: 8px; width: 100%; font-size: 13px; }
 .history th, .history td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
-.history td:nth-child(2), .history th:nth-child(2) { text-align: right; font-variant-numeric: tabular-nums; }
+.history td:nth-child(2), .history th:nth-child(2), .history td:nth-child(3), .history th:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
 
 .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; align-items: end; }
 .settings label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }

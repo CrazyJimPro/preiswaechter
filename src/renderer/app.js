@@ -1,7 +1,7 @@
 import { rpc, onChanged } from './rpc.js';
 import { INTERVALS } from '../lib/constants.js';
 import { formatPrice, stockLabel, timeAgo, timeUntil, changeText } from '../lib/format.js';
-import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded } from '../lib/series.js';
+import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded, changesOnly, extremes } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
 import { setupSettings, renderSettings } from './settings.js';
@@ -9,6 +9,7 @@ import { setupSettings, renderSettings } from './settings.js';
 const $ = (id) => document.getElementById(id);
 const fmtDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const fmtFull = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtShort = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
 const state = {
   products: [],
@@ -178,25 +179,67 @@ function renderDetail() {
   const now = Date.now();
   const pts = seriesInRange(hist, from, now);
   const st = stats(pts, now);
-  const tile = (label, value) => h('div', { class: 'tile' }, h('div', { class: 'label', text: label }), h('div', { class: 'value', text: value }));
+  const ex = extremes(pts);
+  const tile = (label, value, sub, subCls) => h('div', { class: 'tile' },
+    h('div', { class: 'label', text: label }),
+    h('div', { class: 'value', text: value }),
+    sub ? h('div', { class: `sub${subCls ? ` ${subCls}` : ''}`, text: sub }) : null);
+  const when = (e) => (e.current ? `aktuell, seit ${fmtShort.format(new Date(e.since))}` : `am ${fmtShort.format(new Date(e.since))}`);
+  const moved = st && st.min !== st.max;
+  let avgSub = null;
+  let avgCls = null;
+  if (moved && p.currentPrice != null) {
+    const vs = priceChange(p.currentPrice, st.avg);
+    if (!vs) avgSub = 'aktuell genau im Schnitt';
+    else {
+      avgSub = `aktuell ${String(Math.abs(vs.pct)).replace('.', ',')} % ${vs.diff < 0 ? 'darunter' : 'darüber'}`;
+      avgCls = vs.diff < 0 ? 'down' : 'up';
+    }
+  }
   $('tiles').replaceChildren(
-    tile('Tiefster Preis', st ? formatPrice(st.min, p.currency) : '–'),
-    tile('Höchster Preis', st ? formatPrice(st.max, p.currency) : '–'),
-    tile('Durchschnitt', st ? formatPrice(st.avg, p.currency) : '–'),
-    tile('Preisänderungen', st ? String(st.changes) : '–'),
+    tile('Tiefster Preis', st ? formatPrice(st.min, p.currency) : '–', moved ? when(ex.min) : null),
+    tile('Höchster Preis', st ? formatPrice(st.max, p.currency) : '–', moved ? when(ex.max) : null),
+    tile('Durchschnitt', st ? formatPrice(st.avg, p.currency) : '–', avgSub, avgCls),
+    tile('Preisänderungen', st ? String(st.changes) : '–', st ? 'im Zeitraum' : null),
   );
 
-  priceChart($('chart'), hist, { from, to: now, currency: p.currency, targetPrice: p.targetPrice });
+  priceChart($('chart'), hist, {
+    from, to: now, currency: p.currency, targetPrice: p.targetPrice, addedPrice: since ? since.price : null,
+  });
 
-  // Tabelle: neueste zuerst, nur echte Messpunkte
-  const rows = [...hist].sort((a, b) => b.t - a.t).map((x) => h('tr', {},
-    h('td', { text: fmtFull.format(new Date(x.t)) }),
-    h('td', { text: formatPrice(x.price, p.currency) }),
-    h('td', { text: stockLabel(x.stock) })));
-  $('history-rows').replaceChildren(...rows);
+  renderHistoryTable(p, hist);
 
   if (formFor !== p.id) fillForm(p);
 }
+
+// Tabelle: neueste zuerst; standardmäßig nur Änderungen von Preis oder Lagerstatus
+function renderHistoryTable(p, hist) {
+  const all = $('history-all').checked;
+  const changes = changesOnly(hist);
+  let list = changes;
+  if (all) {
+    const sorted = [...hist].sort((a, b) => a.t - b.t);
+    list = sorted.map((x, i) => ({ ...x, change: i ? priceChange(x.price, sorted[i - 1].price) : null }));
+  }
+  const rows = [...list].reverse().map((x) => {
+    const ch = changeText(x.change, p.currency);
+    return h('tr', {},
+      h('td', { text: fmtFull.format(new Date(x.t)) }),
+      h('td', { text: formatPrice(x.price, p.currency) }),
+      h('td', { class: ch ? ch.dir : 'muted', text: ch ? ch.text : '–' }),
+      h('td', { text: stockLabel(x.stock) }));
+  });
+  $('history-rows').replaceChildren(...rows);
+  const n = changes.length;
+  $('history-note').textContent = all
+    ? `${hist.length} Messpunkte`
+    : `${n} ${n === 1 ? 'Eintrag' : 'Einträge'}, nur Änderungen von Preis oder Lagerstatus`;
+}
+
+$('history-all').addEventListener('change', () => {
+  const p = state.products.find((x) => x.id === state.detailId);
+  if (p) renderHistoryTable(p, state.histories.get(p.id) || []);
+});
 
 function fillForm(p) {
   formFor = p.id;
