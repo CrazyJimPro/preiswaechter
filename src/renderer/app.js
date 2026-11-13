@@ -1,7 +1,7 @@
 import { rpc, onChanged } from './rpc.js';
 import { INTERVALS } from '../lib/constants.js';
 import { formatPrice, stockLabel, timeAgo, timeUntil, changeText } from '../lib/format.js';
-import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded, changesOnly, extremes } from '../lib/series.js';
+import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded, changesOnly, extremes, assess, targetProgress } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
 import { setupSettings, renderSettings } from './settings.js';
@@ -16,6 +16,8 @@ const state = {
   histories: new Map(),
   range: loadPref('range', '30'),
   sort: loadPref('sort', 'new'),
+  filter: loadPref('filter', 'all'),
+  view: loadPref('view', 'cards'),
   search: '',
   detailId: null,
   settingsOpen: false,
@@ -86,35 +88,113 @@ function sortProducts(list) {
   }
 }
 
+// Schnellfilter über der Liste: [Schlüssel, Beschriftung, Bedingung]
+const FILTERS = [
+  ['all', 'Alle', () => true],
+  ['target', 'Zielpreis erreicht', (p) => p.targetPrice != null && p.currentPrice != null && p.currentPrice <= p.targetPrice],
+  ['error', 'Mit Problem', (p) => !!p.lastError],
+  ['paused', 'Pausiert', (p) => !!p.paused],
+  ['oos', 'Nicht lieferbar', (p) => p.stockStatus === 'out_of_stock'],
+];
+
+/** Farbige Pille mit der letzten Änderung in Prozent, z. B. „−8 %“. */
+function changePill(p) {
+  const change = priceChange(p.currentPrice, p.previousPrice);
+  const ch = changeText(change, p.currency);
+  if (!ch) return null;
+  const pct = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1, signDisplay: 'always' }).format(change.pct).replace('-', '−');
+  return h('span', { class: `pill ${ch.dir}`, title: `Letzte Änderung: ${ch.text}`, text: `${pct} %` });
+}
+
+function badge(p, hist) {
+  const a = assess(p, hist);
+  return a ? h('span', { class: `badge ${a.kind}`, text: a.text }) : null;
+}
+
+/** Balken vom Preis beim Hinzufügen bis zum Zielpreis. */
+function goalBar(p, since) {
+  const prog = targetProgress(p, since ? since.price : null);
+  if (!prog) return null;
+  const fill = h('i');
+  fill.style.width = `${Math.round(prog.share * 100)}%`;
+  return h('div', { class: 'goal', title: `Zielpreis ${formatPrice(p.targetPrice, p.currency)}` },
+    h('div', { class: 'goal-bar' }, fill),
+    h('div', { class: 'goal-text', text: `noch ${formatPrice(prog.missing, p.currency)} bis Ziel ${formatPrice(p.targetPrice, p.currency)}` }));
+}
+
+function openProduct(p) {
+  return () => { location.hash = `#/p/${p.id}`; };
+}
+
+function productCard(p) {
+  const hist = state.histories.get(p.id);
+  const since = sinceAdded(p, hist);
+  const sinceCh = since && changeText(since.change, p.currency);
+  const meta = [p.shop, stockLabel(p.stockStatus), p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
+  return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: openProduct(p) },
+    thumb(p.imageUrl, 'thumb'),
+    h('div', { class: 'body' },
+      h('div', { class: 'name', text: p.name, title: p.name }),
+      h('div', { class: 'meta' },
+        p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
+        meta),
+      h('div', { class: 'bottom' },
+        h('div', { class: 'price-line' },
+          h('span', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
+          changePill(p)),
+        sparkline(hist, { from: Date.now() - 30 * DAY, width: 96, height: 32, label: 'Preisverlauf der letzten 30 Tage' })),
+      badge(p, hist),
+      goalBar(p, since),
+      since
+        ? h('div', { class: `change ${sinceCh ? sinceCh.dir : 'muted'}`, title: `Beim Hinzufügen: ${formatPrice(since.price, p.currency)}`, text: sinceCh ? `Seit Hinzufügen: ${sinceCh.text}` : 'Seit Hinzufügen unverändert' })
+        : h('div', { class: 'change muted', text: `geprüft ${timeAgo(p.lastChecked)}` }),
+    ));
+}
+
+/** Kompakte Zeile: alles Wichtige auf einer Höhe. */
+function productRow(p) {
+  const hist = state.histories.get(p.id);
+  const since = sinceAdded(p, hist);
+  const sinceCh = since && changeText(since.change, p.currency);
+  const meta = [p.shop, p.stockStatus === 'out_of_stock' ? 'nicht lieferbar' : null, p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
+  return h('button', { class: `card row${state.unread.has(p.id) ? ' fresh' : ''}`, type: 'button', onclick: openProduct(p) },
+    thumb(p.imageUrl, 'thumb'),
+    h('div', { class: 'body' },
+      h('div', { class: 'name', text: p.name, title: p.name }),
+      h('div', { class: 'meta' },
+        p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
+        meta)),
+    h('div', { class: 'row-badge' }, badge(p, hist)),
+    h('div', { class: 'row-since' }, sinceCh ? h('span', { class: sinceCh.dir, title: 'Seit Hinzufügen', text: sinceCh.text }) : null),
+    h('div', { class: 'row-price' },
+      h('span', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
+      changePill(p)),
+    sparkline(hist, { from: Date.now() - 30 * DAY, width: 72, height: 24, label: 'Preisverlauf der letzten 30 Tage' }));
+}
+
+function renderFilters() {
+  const counts = new Map(FILTERS.map(([k, , fn]) => [k, state.products.filter(fn).length]));
+  // Ein Filter ohne Treffer verschwindet; war er gewählt, gilt wieder „Alle“
+  if (state.filter !== 'all' && !counts.get(state.filter)) state.filter = 'all';
+  const chips = FILTERS.filter(([k]) => k === 'all' || counts.get(k) > 0).map(([k, label]) => h('button', {
+    type: 'button', class: 'chip', 'aria-pressed': String(state.filter === k), 'data-filter': k,
+    onclick: () => { state.filter = k; savePref('filter', k); renderList(); },
+  }, label, h('span', { class: 'count', text: String(counts.get(k)) })));
+  $('filters').replaceChildren(...chips);
+  $('filters').hidden = chips.length < 2;
+}
+
 function renderList() {
+  renderFilters();
   const q = state.search.trim().toLowerCase();
+  const filterFn = (FILTERS.find(([k]) => k === state.filter) || FILTERS[0])[2];
   const list = sortProducts(state.products).filter(
-    (p) => !q || p.name.toLowerCase().includes(q) || (p.shop || '').toLowerCase().includes(q),
+    (p) => filterFn(p) && (!q || p.name.toLowerCase().includes(q) || (p.shop || '').toLowerCase().includes(q)),
   );
-  const cards = list.map((p) => {
-    const ch = changeText(priceChange(p.currentPrice, p.previousPrice), p.currency);
-    const since = sinceAdded(p, state.histories.get(p.id));
-    const sinceCh = since && changeText(since.change, p.currency);
-    const meta = [p.shop, stockLabel(p.stockStatus), p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
-    return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: () => { location.hash = `#/p/${p.id}`; } },
-      thumb(p.imageUrl, 'thumb'),
-      h('div', {},
-        h('div', { class: 'name', text: p.name, title: p.name }),
-        h('div', { class: 'meta' },
-          p.lastError ? h('span', { class: 'up', title: p.lastError, text: '⚠ ' }) : null,
-          meta),
-        h('div', { class: 'bottom' },
-          h('div', { class: 'price', text: formatPrice(p.currentPrice, p.currency) }),
-          sparkline(state.histories.get(p.id), { from: Date.now() - 30 * DAY, width: 96, height: 32, label: 'Preisverlauf der letzten 30 Tage' })),
-        ch && (!sinceCh || ch.text !== sinceCh.text)
-          ? h('div', { class: `change ${ch.dir}`, text: `Zuletzt: ${ch.text}` })
-          : null,
-        since
-          ? h('div', { class: `change ${sinceCh ? sinceCh.dir : 'muted'}`, title: `Beim Hinzufügen: ${formatPrice(since.price, p.currency)}`, text: sinceCh ? `Seit Hinzufügen: ${sinceCh.text}` : 'Seit Hinzufügen unverändert' })
-          : h('div', { class: 'change muted', text: `geprüft ${timeAgo(p.lastChecked)}` }),
-      ));
-  });
-  $('cards').replaceChildren(...cards);
+  const compact = state.view === 'list';
+  $('cards').className = compact ? 'cards compact' : 'cards';
+  for (const b of document.querySelectorAll('#view button')) b.setAttribute('aria-pressed', String(b.dataset.view === state.view));
+  $('cards').replaceChildren(...list.map(compact ? productRow : productCard));
   $('empty').hidden = state.products.length > 0;
   const errors = state.products.filter((p) => p.lastError).length;
   $('summary').textContent = state.products.length
@@ -152,6 +232,7 @@ function renderDetail() {
   const sameAsSince = ch && since && since.change && ch.text === changeText(since.change, p.currency).text;
   $('d-change').textContent = ch && !sameAsSince ? `${ch.text} seit ${fmtFull.format(new Date(p.lastChange))}` : '';
   $('d-change').className = ch ? ch.dir : '';
+  $('d-badge').replaceChildren(...[badge(p, hist)].filter(Boolean));
   $('d-since').hidden = !since;
   if (since) {
     const sinceCh = changeText(since.change, p.currency);
@@ -378,6 +459,9 @@ async function renderUpdateBanner() {
 $('search').addEventListener('input', (e) => { state.search = e.target.value; renderList(); });
 $('sort').value = state.sort;
 $('sort').addEventListener('change', (e) => { state.sort = e.target.value; savePref('sort', state.sort); renderList(); });
+for (const b of document.querySelectorAll('#view button')) {
+  b.addEventListener('click', () => { state.view = b.dataset.view; savePref('view', state.view); renderList(); });
+}
 window.addEventListener('hashchange', route);
 
 // Prüfungen im Hintergrund sofort anzeigen

@@ -228,6 +228,28 @@ try {
   ok((await page.evaluate(() => document.querySelector('.card .name').textContent)).includes('Kaffeevollautomat'), 'Sortierung: größte Ersparnis zuerst');
   await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'new'; o.dispatchEvent(new Event('change')); });
 
+  console.log('Liste: Filter, Ansicht, Abzeichen');
+  const nCards = await page.evaluate(() => document.querySelectorAll('#cards .card').length);
+  ok(await page.evaluate(() => [...document.querySelectorAll('#cards .pill.down')].some((x) => x.textContent.includes('19,1'))), 'Karte: Pille −19,1 %');
+  await call('updateProduct', p.id, { targetPrice: 500 });
+  await page.waitForFunction(() => document.querySelector('#cards .badge.target'), { timeout: 3000 }).then(() => ok(true, 'Abzeichen „Zielpreis erreicht“'), () => ok(false, 'Abzeichen „Zielpreis erreicht“'));
+  await call('updateProduct', p.id, { targetPrice: 400 });
+  await page.waitForFunction(() => document.querySelector('#cards .goal-text'), { timeout: 3000 }).then(() => ok(true, 'Balken bis zum Zielpreis'), () => ok(false, 'Balken bis zum Zielpreis'));
+  ok((await page.evaluate(() => document.querySelector('#cards .goal-text').textContent)).includes('44,00'), 'Balken: noch 44,00 € bis Ziel');
+  await call('updateProduct', js.id, { paused: true });
+  await page.waitForFunction(() => document.querySelector('#filters [data-filter="paused"]'), { timeout: 3000 }).catch(() => {});
+  await page.evaluate(() => document.querySelector('#filters [data-filter="paused"]')?.click());
+  ok(await page.evaluate(() => document.querySelectorAll('#cards .card').length) === 1, 'Filter „Pausiert“ zeigt 1 Produkt');
+  await call('updateProduct', js.id, { paused: false });
+  await page.waitForFunction(() => !document.querySelector('#filters [data-filter="paused"]'), { timeout: 3000 }).catch(() => {});
+  ok(await page.evaluate(() => document.querySelectorAll('#cards .card').length) === nCards, 'Filter ohne Treffer fällt auf „Alle“ zurück');
+  await page.evaluate(() => document.querySelector('#view [data-view="list"]').click());
+  ok(await page.evaluate(() => document.querySelectorAll('#cards.compact .card.row').length) === nCards, 'kompakte Liste');
+  await shot('liste-kompakt');
+  await page.evaluate(() => document.querySelector('#view [data-view="cards"]').click());
+  ok(await page.evaluate(() => !document.querySelector('#cards .row')), 'zurück zu Kacheln');
+  await call('updateProduct', p.id, { targetPrice: null });
+
   console.log('Detailansicht');
   await page.evaluate((id) => { location.hash = `#/p/${id}`; }, p.id);
   await page.waitForSelector('#chart svg', { timeout: 5000 });

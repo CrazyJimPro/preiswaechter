@@ -24,7 +24,47 @@ input[type="search"], input[type="text"] { font: inherit; color: var(--text); ba
 .card .bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 8px; }
 .card .price { font-size: 18px; font-weight: 700; }
 .card .change { font-size: 12px; }
+.card .body { min-width: 0; }
 .spark { display: block; }
+.price-line, .row-price { display: flex; align-items: center; gap: 8px; }
+
+/* Änderung als Pille, Einschätzung als Abzeichen */
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pill.down { color: var(--down); background: color-mix(in srgb, var(--down) 14%, transparent); }
+.pill.up { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); }
+.badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--down); background: color-mix(in srgb, var(--down) 12%, transparent); border: 1px solid color-mix(in srgb, var(--down) 30%, transparent); }
+.badge::before { content: "★"; font-size: 11px; }
+.badge.target { color: var(--accent-text); background: linear-gradient(135deg, var(--accent-from), var(--accent-to)); border-color: transparent; }
+.badge.target::before { content: "✓"; }
+.badge.below::before { content: "↓"; }
+#d-badge .badge { margin: 0 0 0 6px; vertical-align: middle; }
+
+/* Fortschritt zum Zielpreis */
+.goal { margin-top: 8px; }
+.goal-bar { height: 6px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.goal-bar i { display: block; height: 100%; min-width: 4px; border-radius: 999px; background: linear-gradient(90deg, var(--accent-from), var(--accent-to)); }
+.goal-text { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* Filter-Chips */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: -6px 0 16px; }
+.chip { border-radius: 999px; padding: 4px 12px; font-size: 13px; background: var(--glass); display: inline-flex; gap: 6px; align-items: center; }
+.chip .count { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--surface); }
+.chip[aria-pressed="true"] { background: linear-gradient(135deg, var(--accent-from), var(--accent-to)); color: var(--accent-text); border-color: transparent; font-weight: 600; }
+.chip[aria-pressed="true"] .count { background: rgba(255, 255, 255, .25); }
+
+/* Kompakte Liste */
+.cards.compact { grid-template-columns: 1fr; gap: 6px; }
+.card.row { grid-template-columns: 44px minmax(0, 1fr) auto 130px 150px 72px; align-items: center; gap: 14px; padding: 8px 14px; border-radius: 14px; }
+.card.row .thumb { width: 44px; height: 44px; border-radius: 8px; }
+.card.row .name { -webkit-line-clamp: 1; }
+.card.row .badge { margin: 0; }
+.card.row .row-since { font-size: 12px; text-align: right; }
+.card.row .row-price { justify-content: flex-end; }
+.card.row .price { font-size: 16px; font-weight: 700; }
+@media (max-width: 760px) {
+  .card.row { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .card.row .row-badge, .card.row .row-since, .card.row .spark { display: none; }
+}
 
 /* Detail */
 .back { display: inline-block; margin-bottom: 14px; text-decoration: none; }

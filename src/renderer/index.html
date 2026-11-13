@@ -47,7 +47,12 @@
             <option value="checked">Zuletzt geprüft</option>
           </select>
         </label>
+        <div class="ranges" id="view" role="group" aria-label="Ansicht">
+          <button type="button" data-view="cards" title="Kacheln">▦ Kacheln</button>
+          <button type="button" data-view="list" title="Kompakte Liste">☰ Liste</button>
+        </div>
       </div>
+      <div id="filters" class="filters" role="group" aria-label="Filter" hidden></div>
       <div id="cards" class="cards"></div>
       <p id="empty" class="muted" hidden>Noch keine Produkte. Kopiere im Browser den Link einer Produktseite und füge ihn oben ein.</p>
     </section>
@@ -60,7 +65,7 @@
         <div class="detail-info">
           <h2 id="d-name"></h2>
           <div class="muted" id="d-meta"></div>
-          <div class="detail-price"><span id="d-price"></span> <span id="d-change"></span></div>
+          <div class="detail-price"><span id="d-price"></span> <span id="d-change"></span> <span id="d-badge"></span></div>
           <p id="d-since" class="since-line" hidden></p>
           <div class="actions">
             <button id="d-shop" type="button">Zum Shop ↗</button>

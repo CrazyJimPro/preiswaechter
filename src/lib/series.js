@@ -78,6 +78,55 @@ export function extremes(points) {
   return { min: pick((a, b) => a < b), max: pick((a, b) => a > b) };
 }
 
+/**
+ * Ist der aktuelle Preis gut? Liefert höchstens ein Abzeichen:
+ * - target: Zielpreis erreicht
+ * - low:    so günstig wie seit mindestens 30 Tagen nicht (bzw. noch nie, wenn der Verlauf so lang ist)
+ * - best:   günstigster Preis seit Beobachtungsbeginn (Verlauf kürzer als 30 Tage, Preis hat sich bewegt)
+ * - below:  mindestens 3 % unter dem Durchschnitt der letzten 30 Tage
+ * @returns {{kind: string, text: string}|null}
+ */
+export function assess(product, history, now = Date.now()) {
+  const price = product && product.currentPrice;
+  if (price == null) return null;
+  if (product.targetPrice != null && price <= product.targetPrice) return { kind: 'target', text: 'Zielpreis erreicht' };
+  const pts = (history || []).filter((p) => p && p.price != null).sort((a, b) => a.t - b.t);
+  if (pts.length < 2) return null;
+  // Wann war der Preis zuletzt niedriger als jetzt? Gemessen ab dem Ende dieses Abschnitts.
+  let lowerUntil = null;
+  for (let i = pts.length - 1; i >= 0; i--) {
+    if (pts[i].price < price) {
+      lowerUntil = i + 1 < pts.length ? pts[i + 1].t : now;
+      break;
+    }
+  }
+  const moved = pts.some((p) => p.price > price);
+  if (lowerUntil == null) {
+    if (!moved) return null;
+    const days = Math.floor((now - pts[0].t) / DAY);
+    return days >= 30
+      ? { kind: 'low', text: `Tiefstpreis seit ${days} Tagen` }
+      : { kind: 'best', text: 'Bester Preis bisher' };
+  }
+  const days = Math.floor((now - lowerUntil) / DAY);
+  if (days >= 30) return { kind: 'low', text: `Tiefstpreis seit ${days} Tagen` };
+  const st = stats(seriesInRange(pts, now - 30 * DAY, now), now);
+  if (st && price <= st.avg * 0.97) return { kind: 'below', text: 'Unter dem Durchschnitt' };
+  return null;
+}
+
+/**
+ * Fortschritt zum Zielpreis, gemessen vom Preis beim Hinzufügen aus.
+ * @returns {{share: number, missing: number}|null} share 0..1, missing = Betrag bis zum Ziel
+ */
+export function targetProgress(product, startPrice) {
+  const { currentPrice: price, targetPrice: target } = product || {};
+  if (price == null || target == null || price <= target) return null;
+  const start = startPrice != null && startPrice > target ? Math.max(startPrice, price) : price;
+  const share = start === target ? 0 : (start - price) / (start - target);
+  return { share: Math.max(0, Math.min(1, share)), missing: Math.round((price - target) * 100) / 100 };
+}
+
 /** Zeitabschnitte, in denen der Artikel nicht lieferbar war: [{from, to}]. */
 export function stockGaps(points, to) {
   const gaps = [];

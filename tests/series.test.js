@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, sinceAdded, changesOnly, durationOf, extremes, stockGaps, DAY } from '../src/lib/series.js';
+import { seriesInRange, stats, priceAt, niceTicks, timeTicks, priceChange, sinceAdded, changesOnly, durationOf, extremes, stockGaps, assess, targetProgress, DAY } from '../src/lib/series.js';
 
 const T = Date.UTC(2026, 10, 1);
 const hist = [
@@ -123,4 +123,35 @@ test('stockGaps: Lücken zusammenfassen, offene Lücke reicht bis jetzt', () => 
   ];
   assert.deepEqual(stockGaps(h, T + 9 * DAY).map((g) => [g.from - T, g.to - T]), [[DAY, 3 * DAY], [5 * DAY, 9 * DAY]]);
   assert.deepEqual(stockGaps([], T), []);
+});
+
+test('assess: Zielpreis, Tiefstpreis seit, bester Preis, unter Durchschnitt', () => {
+  const now = T + 100 * DAY;
+  const P = (currentPrice, extra) => ({ currentPrice, ...extra });
+  assert.equal(assess(P(90, { targetPrice: 95 }), hist, now).kind, 'target');
+  assert.equal(assess(P(null), hist, now), null);
+  assert.equal(assess(P(100), [{ t: T, price: 100 }], now), null); // nur ein Punkt
+  // nie günstiger, Verlauf 100 Tage lang
+  const a = assess(P(70), [...hist, { t: T + 50 * DAY, price: 70 }], now);
+  assert.deepEqual(a, { kind: 'low', text: 'Tiefstpreis seit 100 Tagen' });
+  // nie günstiger, aber erst 10 Tage beobachtet
+  assert.equal(assess(P(70), [{ t: now - 10 * DAY, price: 90 }, { t: now - DAY, price: 70 }], now).kind, 'best');
+  // Preis bewegt sich nicht: kein Abzeichen
+  assert.equal(assess(P(90), [{ t: T, price: 90 }, { t: T + DAY, price: 90 }], now), null);
+  // zuletzt günstiger vor 40 Tagen (80 bis T+60, danach 90; jetzt 85)
+  const b = assess(P(85), [{ t: T, price: 80 }, { t: T + 60 * DAY, price: 90 }, { t: T + 90 * DAY, price: 85 }], now);
+  assert.deepEqual(b, { kind: 'low', text: 'Tiefstpreis seit 40 Tagen' });
+  // vor kurzem günstiger, aber deutlich unter dem 30-Tage-Schnitt
+  const c = assess(P(90), [{ t: now - 40 * DAY, price: 120 }, { t: now - 20 * DAY, price: 85 }, { t: now - 19 * DAY, price: 120 }, { t: now - 2 * DAY, price: 90 }], now);
+  assert.equal(c.kind, 'below');
+  // knapp über dem Schnitt: nichts
+  assert.equal(assess(P(119), [{ t: now - 20 * DAY, price: 85 }, { t: now - 19 * DAY, price: 120 }, { t: now - 2 * DAY, price: 119 }], now), null);
+});
+
+test('targetProgress: vom Startpreis zum Ziel', () => {
+  assert.deepEqual(targetProgress({ currentPrice: 500, targetPrice: 450 }, 550), { share: 0.5, missing: 50 });
+  assert.deepEqual(targetProgress({ currentPrice: 560, targetPrice: 450 }, 550), { share: 0, missing: 110 });
+  assert.equal(targetProgress({ currentPrice: 440, targetPrice: 450 }, 550), null);
+  assert.equal(targetProgress({ currentPrice: 500 }, 550), null);
+  assert.deepEqual(targetProgress({ currentPrice: 500, targetPrice: 450 }, null), { share: 0, missing: 50 });
 });
