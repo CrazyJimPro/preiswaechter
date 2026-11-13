@@ -45,7 +45,7 @@ So liest du das Diagramm:
 
 Die Kacheln über dem Diagramm zeigen den tiefsten und höchsten Preis mit Datum und wie weit der aktuelle Preis über oder unter dem Durchschnitt liegt.
 
-Die App merkt sich den Preis beim Hinzufügen. Oben in der Detailansicht und auf jeder Karte siehst du, was sich seitdem getan hat, zum Beispiel **Seit Hinzufügen: ▼ 105,00 € (−19,1 %)**. Über **Sortieren** → **Größte Ersparnis** stehen die besten Treffer oben.
+Die App merkt sich den Preis beim Hinzufügen. Oben in der Detailansicht und auf jeder Karte siehst du, was sich seitdem getan hat, zum Beispiel **Seit Hinzufügen: ▼ 105,00 € (−19,1 %)**. Über **Sortieren** → **Größte Ersparnis** stehen die besten Treffer oben. Mit **Sortieren** → **Preis zuletzt geändert** steht das Produkt oben, dessen Preis sich zuletzt verändert hat; Produkte ohne Preisänderung kommen ans Ende.
 
 In der Übersicht heißt **▼** günstiger und **▲** teurer. Die farbige Pille neben dem Preis zeigt die letzte Änderung in Prozent. Ein grüner Strich links an der Karte markiert Produkte, die günstiger geworden sind, seit du zuletzt nachgesehen hast.
 
@@ -100,10 +100,14 @@ Wie oft geprüft wird, stellst du je Produkt ein (15 Minuten bis 24 Stunden, Sta
 
 ## Das Design wechseln
 
-1. Klicke auf **⚙ Einstellungen**.
-2. Wähle ganz oben unter **Aussehen** bei **Design** den Eintrag **Hell** oder **Mitternacht**. Die App wechselt sofort, ein Neustart ist nicht nötig. Bei **Wie das System** richtet sie sich nach deinem Betriebssystem.
+**Schnell umschalten:** Klicke oben rechts auf **☾ Mitternacht** (im hellen Design) oder **☀ Hell** (im dunklen Design). Die App wechselt sofort.
 
-Zur Auswahl stehen **Wie das System**, **Hell** und **Dunkel**. Die Wahl bleibt beim nächsten Start erhalten.
+**Über die Einstellungen:** Dort gibt es zusätzlich **Wie das System**.
+
+1. Klicke auf **⚙ Einstellungen**.
+2. Wähle ganz oben unter **Aussehen** bei **Design** den Eintrag **Wie das System**, **Hell** oder **Mitternacht**. Bei **Wie das System** richtet sich die App nach deinem Betriebssystem.
+
+Ein Neustart ist nicht nötig, die Wahl bleibt beim nächsten Start erhalten.
 
 ## Eine Sicherung erstellen
 

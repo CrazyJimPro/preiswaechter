@@ -73,6 +73,8 @@ function sortProducts(list) {
   switch (state.sort) {
     case 'name': return arr.sort((a, b) => displayName(a).localeCompare(displayName(b), 'de'));
     case 'checked': return arr.sort((a, b) => (b.lastChecked || 0) - (a.lastChecked || 0));
+    // Letzte Preisänderung zuerst; nie geänderte ans Ende (stabil: dort zuletzt hinzugefügt zuerst)
+    case 'changed': return arr.sort((a, b) => (b.lastChange || 0) - (a.lastChange || 0));
     case 'drop': {
       const pct = (p) => (priceChange(p.currentPrice, p.previousPrice) || { pct: 0 }).pct;
       return arr.sort((a, b) => pct(a) - pct(b));
@@ -500,6 +502,28 @@ setInterval(() => {
 }, 60 * 1000);
 
 window.pw.onOpenProduct((id) => { location.hash = `#/p/${id}`; });
+
+// Knopf oben: direkt zwischen Hell und Mitternacht wechseln
+// (Gespeichertes Design statt nur matchMedia-Ereignis: das kommt nicht in jedem Fenster an.)
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+let currentTheme = 'system';
+const isDarkNow = () => currentTheme === 'dark' || (currentTheme !== 'light' && darkQuery.matches);
+function renderThemeToggle() {
+  const btn = $('theme-toggle');
+  const dark = isDarkNow();
+  btn.textContent = dark ? '☀ Hell' : '☾ Mitternacht';
+  btn.title = dark ? 'Zum hellen Design wechseln' : 'Zum Design Mitternacht wechseln';
+}
+darkQuery.addEventListener('change', renderThemeToggle);
+renderThemeToggle();
+rpc.getSettings().then((s) => { currentTheme = s.theme; renderThemeToggle(); });
+$('o-theme').addEventListener('change', (e) => { currentTheme = e.target.value; renderThemeToggle(); });
+$('theme-toggle').addEventListener('click', async () => {
+  currentTheme = isDarkNow() ? 'light' : 'dark';
+  renderThemeToggle();
+  $('o-theme').value = currentTheme; // Auswahl in den Einstellungen mitziehen
+  await rpc.saveSettings({ theme: currentTheme });
+});
 
 $('check-all').addEventListener('click', async () => {
   const btn = $('check-all');

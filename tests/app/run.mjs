@@ -226,6 +226,18 @@ try {
   ok(await page.evaluate(() => [...document.querySelectorAll('.card')].some((c) => c.innerText.includes('Seit Hinzufügen unverändert'))), 'Karte: unverändert beim anderen Produkt');
   await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'since'; o.dispatchEvent(new Event('change')); });
   ok((await page.evaluate(() => document.querySelector('.card .name').textContent)).includes('Kaffeevollautomat'), 'Sortierung: größte Ersparnis zuerst');
+  await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'changed'; o.dispatchEvent(new Event('change')); });
+  {
+    // Liste lädt Änderungen mit kurzer Verzögerung nach → auf die Reihenfolge warten
+    const order = () => {
+      const names = [...document.querySelectorAll('#cards .card .name')].map((x) => x.textContent);
+      const i = (s) => names.findIndex((n) => n.includes(s));
+      return i('JS-Produkt') === 0 && i('Kaffeevollautomat') === 1 && i('Monitor') > 1;
+    };
+    const good = await page.waitForFunction(order, { timeout: 3000 }).then(() => true, () => false);
+    const names = await page.evaluate(() => [...document.querySelectorAll('#cards .card .name')].map((x) => x.textContent).join(' | '));
+    ok(good, `Sortierung: Preis zuletzt geändert zuerst (${names})`);
+  }
   await page.evaluate(() => { const o = document.getElementById('sort'); o.value = 'new'; o.dispatchEvent(new Event('change')); });
 
   console.log('Liste: Filter, Ansicht, Abzeichen');
@@ -421,6 +433,14 @@ try {
   await themeShots('hell');
   await call('saveSettings', { theme: 'lila' });
   ok((await call('getSettings')).theme === 'light', 'unbekanntes Design abgelehnt');
+  ok((await page.evaluate(() => document.getElementById('theme-toggle').textContent)) === '☾ Mitternacht', 'Knopf oben zeigt „☾ Mitternacht“');
+  await page.evaluate(() => document.getElementById('theme-toggle').click());
+  await sleep(300);
+  ok((await isDark()) && (await call('getSettings')).theme === 'dark', 'Knopf oben: wechselt zu Mitternacht und speichert');
+  ok((await page.evaluate(() => [document.getElementById('theme-toggle').textContent, document.getElementById('o-theme').value].join())) === '☀ Hell,dark', `Knopf zeigt „☀ Hell“, Auswahl zieht mit (${await page.evaluate(() => [document.getElementById('theme-toggle').textContent, document.getElementById('o-theme').value].join())})`);
+  await page.evaluate(() => document.getElementById('theme-toggle').click());
+  await sleep(300);
+  ok(!(await isDark()) && (await call('getSettings')).theme === 'light', 'Knopf oben: zurück zu Hell');
   await pickTheme('dark');
   await pickTheme('system');
   ok((await call('testState')).themeSource === 'system', 'zurück auf System');
