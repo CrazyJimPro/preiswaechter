@@ -78,3 +78,16 @@ export function changeText(change, currency) {
   };
 }
 
+
+/** "UVP 99,99 €" oder "UVP unbekannt", wenn die Seite keine nennt. */
+export function uvpLabel(uvp, currency) {
+  return typeof uvp === 'number' && uvp > 0 ? `UVP ${formatPrice(uvp, currency)}` : 'UVP unbekannt';
+}
+
+/** Preis im Vergleich zur UVP: "32 % unter UVP" ('down'), "5 % über UVP" ('up') oder "wie UVP". */
+export function uvpCompare(price, uvp) {
+  if (typeof price !== 'number' || typeof uvp !== 'number' || !(uvp > 0)) return null;
+  const pct = Math.round(((price - uvp) / uvp) * 100);
+  if (pct === 0) return { text: 'wie UVP', dir: 'same' };
+  return pct < 0 ? { text: `${-pct} % unter UVP`, dir: 'down' } : { text: `${pct} % über UVP`, dir: 'up' };
+}

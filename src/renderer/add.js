@@ -1,6 +1,6 @@
 // Produkt per Link hinzufügen: Link einfügen → Seite lesen → prüfen → verfolgen.
 import { rpc } from './rpc.js';
-import { formatPrice, stockLabel, displayName } from '../lib/format.js';
+import { formatPrice, stockLabel, displayName, uvpLabel } from '../lib/format.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -61,7 +61,7 @@ function renderPreview(info) {
   const target = h('input', { id: 'add-target', type: 'text', inputmode: 'decimal', placeholder: 'z. B. 199,99' });
   showBox(h('div', { class: 'preview' }, image, h('div', {},
     h('div', { class: 'name', text: info.name }),
-    h('div', { class: 'meta', text: [info.shop, stockLabel(info.stockStatus)].filter(Boolean).join(' · ') }),
+    h('div', { class: 'meta', text: [info.shop, stockLabel(info.stockStatus), uvpLabel(info.uvp, info.currency)].filter(Boolean).join(' · ') }),
     choice,
     h('div', { class: 'preview-actions' },
       h('label', {}, 'Zielpreis (optional)', target),
@@ -79,6 +79,7 @@ function renderPreview(info) {
             shop: info.shop,
             currency: opt.currency || info.currency,
             price: opt.price,
+            uvp: info.uvp,
             stockStatus: info.stockStatus,
             targetPrice,
             preferredMethods: info.hasConsensus ? [] : opt.methods,

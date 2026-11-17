@@ -83,6 +83,7 @@ export function planImport(data, existing, { now = Date.now(), newId } = {}) {
       currency: typeof raw.currency === 'string' && /^[A-Z]{3}$/.test(raw.currency) ? raw.currency : 'EUR',
       currentPrice: isNum(raw.currentPrice) ? raw.currentPrice : last ? last.price : null,
       addedPrice: isNum(raw.addedPrice) ? raw.addedPrice : null,
+      uvp: isNum(raw.uvp) && raw.uvp > 0 ? raw.uvp : null,
       previousPrice: isNum(raw.previousPrice) ? raw.previousPrice : null,
       lastChange: isNum(raw.lastChange) ? raw.lastChange : null,
       stockStatus: typeof raw.stockStatus === 'string' ? raw.stockStatus : 'unknown',

@@ -141,6 +141,24 @@
     return { price: amount, currency: currency ? String(currency).toUpperCase() : null, availability: offer.availability };
   }
 
+  // Nur echte Herstellerempfehlungen; StrikethroughPrice ist ein früherer Preis, keine UVP
+  const RE_UVP_TYPE = /(^|[/#:])(ListPrice|MSRP|SRP|SuggestedRetailPrice)$/i;
+
+  function offerUvp(offer) {
+    if (!offer || typeof offer !== 'object') return null;
+    for (const spec of asList(offer.priceSpecification)) {
+      if (spec && RE_UVP_TYPE.test(String(spec.priceType || '').trim())) {
+        const v = NS.parseAmount(spec.price);
+        if (v != null) return v;
+      }
+    }
+    for (const o of asList(offer.offers)) {
+      const v = offerUvp(o);
+      if (v != null) return v;
+    }
+    return null;
+  }
+
   function fromJsonLd(doc, url) {
     const nodes = jsonLdNodes(doc);
     let products = nodes.filter((n) => isType(n, 'Product') || isType(n, 'ProductGroup') || isType(n, 'IndividualProduct'));
@@ -169,6 +187,7 @@
           return {
             price: r.price,
             currency: r.currency,
+            uvp: offerUvp(o),
             name: typeof p.name === 'string' ? p.name.trim() : null,
             image: absUrl(image, url),
             stock: stockFromSchema(r.availability),
@@ -181,7 +200,7 @@
     if (p) {
       let image = Array.isArray(p.image) ? p.image[0] : p.image;
       if (image && typeof image === 'object') image = image.url;
-      return { price: null, currency: null, name: typeof p.name === 'string' ? p.name.trim() : null, image: absUrl(image, url), stock: null };
+      return { price: null, currency: null, uvp: null, name: typeof p.name === 'string' ? p.name.trim() : null, image: absUrl(image, url), stock: null };
     }
     return null;
   }
@@ -243,9 +262,64 @@
     return out;
   }
 
+  // ---------- UVP (unverbindliche Preisempfehlung) ----------
+  //
+  // Eine UVP zählt nur, wenn die Seite sie auch so nennt. Durchgestrichene Preise
+  // ohne Beschriftung („statt“, „Vorheriger Preis“, „Niedrigster Preis der letzten
+  // 30 Tage“) sind keine UVP. Wird nichts gefunden, bleibt die UVP unbekannt (null).
+
+  const RE_UVP_LABEL = /\bUVP\b|unverb(?:indliche)?\.?\s*Preis\s*empf|Preisempfehlung|\bRRP\b|\bMSRP\b/i;
+  // „UVP-Ersparnis 30 €“ nennt den Rabatt, nicht die UVP
+  const RE_UVP_NOT = /^\W*(ersparnis|rabatt|gespart|sparen)/i;
+  const UVP_EXCLUDE =
+    'script, style, noscript, template, header, nav, footer, aside, ' +
+    '[class*="related"], [class*="recommend"], [class*="carousel"], [class*="upsell"], [class*="cross-sell"], ' +
+    '[class*="crosssell"], [class*="similar"], [class*="accessor"]';
+
+  /** Alle beschrifteten UVP-Angaben unterhalb der Wurzeln, in Seitenreihenfolge. */
+  function uvpFromLabels(roots, cur, live) {
+    const found = [];
+    for (const root of roots) {
+      const doc = root.ownerDocument || root;
+      let walker;
+      try { walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */); } catch { continue; }
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!RE_UVP_LABEL.test(n.nodeValue || '')) continue;
+        let el = n.parentElement;
+        if (!el || el.closest(UVP_EXCLUDE)) continue;
+        if (live && typeof el.checkVisibility === 'function' && !el.checkVisibility()) continue;
+        // Beschriftung und Betrag stehen oft in Geschwister-Elementen: ein paar Ebenen hochgehen
+        for (let depth = 0; el && depth < 4; depth++, el = el.parentElement) {
+          const t = txt(el);
+          if (t.length > 120) break;
+          const m = RE_UVP_LABEL.exec(t);
+          const rest = m ? t.slice(m.index + m[0].length) : '';
+          if (m && !RE_UVP_NOT.test(rest)) {
+            const p = NS.parsePrice(rest, cur);
+            if (p) { found.push(p.price); break; }
+          }
+          if (el === root) break;
+        }
+      }
+    }
+    return found;
+  }
+
+  /** Ganze Seite: nur eine eindeutige UVP zählt, bei verschiedenen Werten lieber unbekannt. */
+  function genericUvp(doc, cur, live) {
+    if (!doc.body) return null;
+    const values = [...new Set(uvpFromLabels([doc.body], cur, live).map((v) => v.toFixed(2)))];
+    return values.length === 1 ? Number(values[0]) : null;
+  }
+
   const SITES = [
     {
       name: 'Amazon',
+      // Nur der Preisblock des Produkts; die Empfehlungen darunter haben eigene UVPs
+      uvp(doc, cur, live) {
+        const roots = $$(doc, '#corePriceDisplay_desktop_feature_div, #corePrice_feature_div, #corePrice_desktop, #corePriceDisplay_mobile_feature_div, #corePrice_mobile_feature_div, #apex_desktop');
+        return uvpFromLabels(roots, cur, live)[0] ?? null;
+      },
       match: (host) => /(^|\.)amazon\.[a-z.]+$/.test(host),
       extract(doc, url, cur) {
         let prices = pricesFromSelectors(doc, [
@@ -541,6 +615,14 @@
     const stockStatus =
       (ld && ld.stock) || (siteData && siteData.stock) || meta.stock || genericStock(doc) || 'unknown';
 
+    // Shop-Erkennung zuerst; Shops mit eigener UVP-Suche bekommen keine Suche über die ganze Seite
+    let uvp = null;
+    try {
+      if (site && site.uvp) uvp = site.uvp(doc, defaultCur, live);
+      if (uvp == null && ld && ld.uvp != null) uvp = ld.uvp;
+      if (uvp == null && !(site && site.uvp)) uvp = genericUvp(doc, defaultCur, live);
+    } catch { uvp = null; }
+
     return {
       url,
       productUrl: normalizeProductUrl(url),
@@ -551,6 +633,7 @@
       currency: (top && top.currency) || defaultCur,
       stockStatus,
       price: top ? top.price : null,
+      uvp: uvp != null && uvp > 0 ? uvp : null,
       hasConsensus: !!top && hasConsensus,
       options,
       candidates,

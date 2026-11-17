@@ -113,6 +113,7 @@ export function createStore(file) {
         // Bei mehreren gefundenen Preisen: die Methode(n), deren Preis gewählt wurde
         preferredMethods: Array.isArray(info.preferredMethods) ? info.preferredMethods : [],
         addedPrice: info.price ?? null, // Preis beim Hinzufügen, bleibt für immer gleich
+        uvp: typeof info.uvp === 'number' && info.uvp > 0 ? info.uvp : null, // null = unbekannt
         previousPrice: null,
         lastChange: null,
         errorCount: 0,

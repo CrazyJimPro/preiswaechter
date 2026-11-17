@@ -15,9 +15,11 @@ test('historyCsv: Semikolon, Dezimalkomma, Änderung, Maskierung', () => {
   ]);
   const lines = csv.split('\r\n');
   assert.equal(lines[0], 'Produkt;"Kaffee; ""Deluxe"""');
-  assert.equal(lines[3], 'Zeitpunkt;Preis;Währung;Änderung;Änderung in %;Lagerstatus');
-  assert.equal(lines[4], '01.11.2026 09:30;100,00;EUR;;;Lieferbar');
-  assert.equal(lines[5], '02.11.2026 09:30;89,50;EUR;-10,50;-10,5;Nicht lieferbar');
+  assert.equal(lines[2], 'UVP;unbekannt');
+  assert.equal(lines[4], 'Zeitpunkt;Preis;Währung;Änderung;Änderung in %;Lagerstatus');
+  assert.equal(lines[5], '01.11.2026 09:30;100,00;EUR;;;Lieferbar');
+  assert.equal(lines[6], '02.11.2026 09:30;89,50;EUR;-10,50;-10,5;Nicht lieferbar');
+  assert.equal(historyCsv({ ...product, uvp: 129.9 }, []).split('\r\n')[2], 'UVP;129,90 EUR');
   assert.ok(csv.endsWith('\r\n'));
 });
 
@@ -50,4 +52,13 @@ test('Sicherung nimmt eigenen Namen und Notiz mit', () => {
   const plan = planImport(data, { products: [], histories: [] });
   assert.equal(plan.add[0].product.customName, 'Mein A');
   assert.equal(plan.add[0].product.note, 'Notiz');
+});
+
+test('uvpLabel und uvpCompare', async () => {
+  const { uvpLabel, uvpCompare } = await import('../src/lib/format.js');
+  assert.equal(uvpLabel(null), 'UVP unbekannt');
+  assert.equal(uvpLabel(99.99, 'EUR').replace(/\s/g, ' '), 'UVP 99,99 €');
+  assert.deepEqual(uvpCompare(67.99, 99.99), { text: '32 % unter UVP', dir: 'down' });
+  assert.deepEqual(uvpCompare(105, 100), { text: '5 % über UVP', dir: 'up' });
+  assert.equal(uvpCompare(50, null), null);
 });

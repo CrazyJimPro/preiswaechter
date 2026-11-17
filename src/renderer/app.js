@@ -1,6 +1,6 @@
 import { rpc, onChanged } from './rpc.js';
 import { INTERVALS } from '../lib/constants.js';
-import { formatPrice, stockLabel, timeAgo, timeUntil, changeText, displayName } from '../lib/format.js';
+import { formatPrice, stockLabel, timeAgo, timeUntil, changeText, displayName, uvpLabel, uvpCompare } from '../lib/format.js';
 import { RANGES, DAY, seriesInRange, stats, priceChange, sinceAdded, changesOnly, extremes, assess, targetProgress } from '../lib/series.js';
 import { sparkline, priceChart } from '../lib/chart.js';
 import { setupAddForm } from './add.js';
@@ -132,7 +132,7 @@ function productCard(p) {
   const hist = state.histories.get(p.id);
   const since = sinceAdded(p, hist);
   const sinceCh = since && changeText(since.change, p.currency);
-  const meta = [p.shop, stockLabel(p.stockStatus), p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
+  const meta = [p.shop, stockLabel(p.stockStatus), p.uvp != null ? uvpLabel(p.uvp, p.currency) : null, p.paused ? 'pausiert' : null].filter(Boolean).join(' · ');
   return h('button', { class: `card${state.unread.has(p.id) ? ' fresh' : ''}`, title: state.unread.has(p.id) ? 'Günstiger geworden' : null, type: 'button', onclick: openProduct(p) },
     thumb(p.imageUrl, 'thumb'),
     h('div', { class: 'body' },
@@ -251,6 +251,12 @@ function renderDetail() {
       sinceCh ? h('span', { class: sinceCh.dir, text: `seitdem ${sinceCh.text}` }) : 'seitdem unverändert',
     );
   }
+  const vsUvp = uvpCompare(p.currentPrice, p.uvp);
+  $('d-uvp').replaceChildren(
+    ...(p.uvp != null
+      ? ['UVP: ', h('strong', { text: formatPrice(p.uvp, p.currency) }), ...(vsUvp ? [' · ', h('span', { class: vsUvp.dir, text: `aktuell ${vsUvp.text}` })] : [])]
+      : ['UVP: unbekannt']),
+  );
   $('d-shop').onclick = () => rpc.openExternal(p.url);
   $('d-error').hidden = !p.lastError;
   $('d-error').textContent = p.lastError ? `⚠ Letzte Prüfung fehlgeschlagen: ${p.lastError}` : '';

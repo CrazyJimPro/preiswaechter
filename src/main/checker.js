@@ -15,6 +15,8 @@ export function createChecker(store) {
       ...fresh,
       currentPrice: picked.price,
       currency: picked.currency || fresh.currency,
+      // Was die Seite gerade als UVP nennt; steht keine da, ist sie unbekannt
+      uvp: typeof result.uvp === 'number' && result.uvp > 0 ? result.uvp : null,
       stockStatus: stock,
       previousPrice: priceChanged ? fresh.currentPrice : fresh.previousPrice ?? null,
       lastChange: priceChanged ? now : fresh.lastChange ?? null,

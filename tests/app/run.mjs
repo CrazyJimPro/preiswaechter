@@ -22,13 +22,13 @@ const within = (ms, promise) => Promise.race([
 const errors = [];
 const ok = (cond, msg) => { console.log(`  ${cond ? '✓' : '✗'} ${msg}`); if (!cond) errors.push(msg); };
 
-const state = { price: 549, js: 77.77, seenUa: '' };
+const state = { price: 549, uvp: 699, js: 77.77, seenUa: '' };
 const shop = http.createServer((req, res) => {
   state.seenUa = req.headers['user-agent'] || state.seenUa;
   const route = req.url.split('?')[0];
   const send = (code, body) => { res.writeHead(code, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(body); };
   if (route === '/p.html') {
-    return send(200, `<!doctype html><html><head><title>P</title><script type="application/ld+json">{"@type":"Product","name":"Kaffeevollautomat XY","offers":{"price":"${state.price}","priceCurrency":"EUR","availability":"https://schema.org/InStock"}}</script></head><body><h1>Kaffeevollautomat XY</h1></body></html>`);
+    return send(200, `<!doctype html><html><head><title>P</title><script type="application/ld+json">{"@type":"Product","name":"Kaffeevollautomat XY","offers":{"price":"${state.price}","priceCurrency":"EUR","availability":"https://schema.org/InStock"}}</script></head><body><h1>Kaffeevollautomat XY</h1>${state.uvp ? `<p>UVP: ${state.uvp} €</p>` : ''}</body></html>`);
   }
   if (route === '/js.html') {
     return send(200, `<!doctype html><html><head><title>JS</title></head><body><h1>JS-Produkt</h1><div class="product-price" id="p"></div><script>setTimeout(()=>{document.getElementById('p').textContent='${String(state.js).replace('.', ',')} €'},800)</script></body></html>`);
@@ -153,6 +153,7 @@ try {
   await track();
   let p = await productBy('p.html');
   ok(p && p.currentPrice === 549 && p.targetPrice === 499.5 && !p.url.includes('utm_'), 'gespeichert mit Zielpreis, ohne Tracking-Zusatz');
+  ok(p.uvp === 699, 'UVP 699 € beim Hinzufügen gespeichert');
   await page.waitForFunction(() => document.querySelectorAll('.card').length === 1, { timeout: 3000 });
   ok(true, 'Karte erscheint in der Übersicht');
 
@@ -268,6 +269,7 @@ try {
   await page.evaluate((id) => { location.hash = `#/p/${id}`; }, p.id);
   await page.waitForSelector('#chart svg', { timeout: 5000 });
   ok((await page.evaluate(() => document.getElementById('d-price').textContent)).includes('444,00'), 'Preis im Kopf');
+  ok((await page.evaluate(() => document.getElementById('d-uvp').textContent.replace(/\s/g, ' '))) === 'UVP: 699,00 € · aktuell 36 % unter UVP', 'UVP-Zeile mit Abstand zum Preis');
   ok((await page.evaluate(() => document.getElementById('d-change').textContent)) === '', 'bei nur einer Änderung nichts doppelt');
   const sinceLine = await page.evaluate(() => document.getElementById('d-since').textContent);
   ok(sinceLine.includes('549,00') && sinceLine.includes('▼ 105,00'), `Kopf: ${sinceLine}`);
@@ -323,9 +325,11 @@ try {
   p = await productBy('p.html');
   ok(p.customName === null && p.note === null && (await page.evaluate(() => document.getElementById('d-name').textContent)).includes('Kaffeevollautomat'), 'leerer Name: wieder Shop-Name');
   state.price = 400;
+  state.uvp = null;
   await call('checkNow', p.id);
   await sleep(500);
   ok((await page.evaluate(() => document.getElementById('d-price').textContent)).includes('400,00'), 'neuer Preis erscheint sofort');
+  ok((await page.evaluate(() => document.getElementById('d-uvp').textContent)) === 'UVP: unbekannt', 'ohne UVP auf der Seite: UVP unbekannt');
   await page.evaluate(() => document.getElementById('d-delete').click());
   await page.evaluate(() => document.getElementById('d-delete').click());
   await sleep(300);

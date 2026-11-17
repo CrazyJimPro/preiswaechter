@@ -23,6 +23,7 @@ export function historyCsv(product, history) {
   const lines = [
     ['Produkt', displayName(product)],
     ['Adresse', product.url || ''],
+    ['UVP', typeof product.uvp === 'number' && product.uvp > 0 ? `${num(product.uvp)} ${product.currency || 'EUR'}` : 'unbekannt'],
     [],
     ['Zeitpunkt', 'Preis', 'Währung', 'Änderung', 'Änderung in %', 'Lagerstatus'],
   ];

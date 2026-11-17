@@ -22,6 +22,7 @@ test('JSON-LD-Shop: Preis aus @graph, Kopfzeile/UVP/Rate/Zubehör ignoriert', ()
   assert.equal(r.imageUrl, 'https://shop.example.de/img/xy500-big.jpg');
   assert.equal(r.stockStatus, 'in_stock');
   assert.equal(r.productUrl, 'https://shop.example.de/p/xy-500');
+  assert.equal(r.uvp, null, 'durchgestrichener Preis ohne Beschriftung ist keine UVP');
 });
 
 test('Amazon.de: priceToPay statt Streichpreis, URL auf /dp/ASIN gekürzt', () => {
@@ -33,6 +34,7 @@ test('Amazon.de: priceToPay statt Streichpreis, URL auf /dp/ASIN gekürzt', () =
   assert.equal(r.imageUrl, 'https://m.media-amazon.com/images/I/big.jpg');
   assert.equal(r.stockStatus, 'in_stock');
   assert.equal(r.productUrl, 'https://www.amazon.de/dp/B0F1234567');
+  assert.equal(r.uvp, null, 'Streichpreis ohne „UVP“ zählt nicht');
 });
 
 test('Amazon.de: Ganzzahl + Nachkommastellen, nicht verfügbar', () => {
@@ -88,6 +90,36 @@ test('Seite ohne Preis', () => {
   const r = run('noprice.html', 'https://blog.example/kaffee');
   assert.equal(r.price, null);
   assert.equal(r.options.length, 0);
+});
+
+test('UVP Amazon: beschriftete UVP im Preisblock, Empfehlungen ignoriert', () => {
+  const r = run('amazon-uvp.html', 'https://www.amazon.de/dp/B0DRXRH9DQ?th=1');
+  assert.equal(r.price, 67.99);
+  assert.equal(r.uvp, 99.99);
+});
+
+test('UVP Amazon: „Niedrigster Preis in 30 Tagen“ ist keine UVP, Beschreibung zählt nicht', () => {
+  const r = run('amazon-30tage.html', 'https://www.amazon.de/dp/B000000002');
+  assert.equal(r.price, 49.99);
+  assert.equal(r.uvp, null);
+});
+
+test('UVP Shop: „Unverbindliche Preisempfehlung“, Kopfzeile/Empfehlungen/Ersparnis/Streichpreis ignoriert', () => {
+  const r = run('uvp-shop.html', 'https://shop.example/standmixer-m3');
+  assert.equal(r.price, 119);
+  assert.equal(r.uvp, 159);
+});
+
+test('UVP Shop: zwei verschiedene UVPs → unbekannt', () => {
+  const r = run('uvp-mehrdeutig.html', 'https://shop.example/k1');
+  assert.equal(r.price, 79);
+  assert.equal(r.uvp, null);
+});
+
+test('UVP aus JSON-LD: priceType ListPrice', () => {
+  const r = run('jsonld-listprice.html', 'https://shop.example/r9');
+  assert.equal(r.price, 189.9);
+  assert.equal(r.uvp, 249.99);
 });
 
 test('normalizeProductUrl entfernt Tracking, behält Varianten-Parameter', () => {

@@ -6,6 +6,7 @@ Desktop-App für **Windows und Linux**, die Produktpreise in Online-Shops verfol
 - Automatische Prüfung im Hintergrund, jedes Produkt mit eigenem Intervall
 - Preisverlauf mit Diagramm: Senkungen grün, Erhöhungen rot, Tief- und Höchstpreis markiert, Lieferlücken grau
 - Abzeichen wie „Tiefstpreis seit 45 Tagen“, Balken bis zum Zielpreis, Filter und kompakte Liste
+- UVP, wenn der Shop sie ausdrücklich nennt, sonst „unbekannt“
 - Eigener Name und Notiz je Produkt, Preisverlauf als CSV für Excel
 - Benachrichtigung bei Zielpreis, Preissenkung und „wieder lieferbar“
 - Zwei Designs: Hell und Mitternacht

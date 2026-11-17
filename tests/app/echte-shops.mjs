@@ -14,7 +14,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const urls = process.argv.slice(2);
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-echt-'));
 const bin = process.env.PREISWAECHTER_BIN;
-const child = spawn(bin || path.join(ROOT, 'node_modules/.bin/electron'), [...(bin ? [] : [ROOT]), `--remote-debugging-port=${PORT}`], {
+// Unter Windows scheitert .bin/electron: dann PREISWAECHTER_BIN=node_modules/electron/dist/electron.exe
+const plainElectron = !bin || /^electron(\.exe)?$/i.test(path.basename(bin));
+const child = spawn(bin || path.join(ROOT, 'node_modules/.bin/electron'), [...(plainElectron ? [ROOT] : []), `--remote-debugging-port=${PORT}`], {
   env: {
     ...process.env,
     PREISWAECHTER_USERDATA: userData,
@@ -43,7 +45,7 @@ try {
     const opts = x ? x.options.map((o) => `${o.price} ${o.currency} [${o.methods.join('+')}]`).join(' | ') : '-';
     console.log(`\n${new URL(url).hostname} (${((Date.now() - t0) / 1000).toFixed(1)} s, HTTP ${r.status})`);
     console.log(`  Name:  ${x ? x.name.slice(0, 80) : '-'}`);
-    console.log(`  Preis: ${x && x.price != null ? x.price : '-'}  eindeutig=${x ? x.hasConsensus : '-'}  Lager=${x ? x.stockStatus : '-'}  Bild=${x && x.imageUrl ? 'ja' : 'nein'}`);
+    console.log(`  Preis: ${x && x.price != null ? x.price : '-'}  eindeutig=${x ? x.hasConsensus : '-'}  Lager=${x ? x.stockStatus : '-'}  Bild=${x && x.imageUrl ? 'ja' : 'nein'}  UVP=${x ? (x.uvp ?? 'unbekannt') : '-'}`);
     console.log(`  Kandidaten: ${opts}${r.error ? `\n  Fehler: ${r.error}` : ''}`);
   }
 } finally {

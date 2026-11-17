@@ -51,6 +51,8 @@ Die Kacheln über dem Diagramm zeigen den tiefsten und höchsten Preis mit Datum
 
 Die App merkt sich den Preis beim Hinzufügen. Oben in der Detailansicht und auf jeder Karte siehst du, was sich seitdem getan hat, zum Beispiel **Seit Hinzufügen: ▼ 105,00 € (−19,1 %)**. Über **Sortieren** → **Größte Ersparnis** stehen die besten Treffer oben. Mit **Sortieren** → **Preis zuletzt geändert** steht das Produkt oben, dessen Preis sich zuletzt verändert hat; Produkte ohne Preisänderung kommen ans Ende.
 
+**UVP:** Nennt der Shop eine unverbindliche Preisempfehlung (zum Beispiel **UVP: 99,99 €** bei Amazon), zeigt die App sie in der Detailansicht mit dem Abstand zum aktuellen Preis, zum Beispiel **UVP: 99,99 € · aktuell 32 % unter UVP**, und auf der Karte. Es zählt nur ein Preis, den die Seite ausdrücklich als UVP bezeichnet. Durchgestrichene Preise wie „statt“ oder „Niedrigster Preis der letzten 30 Tage“ sind keine UVP. Findet die App keine, steht dort **UVP: unbekannt**. Die UVP wird bei jeder Prüfung neu gelesen.
+
 In der Übersicht heißt **▼** günstiger und **▲** teurer. Die farbige Pille neben dem Preis zeigt die letzte Änderung in Prozent. Ein grüner Strich links an der Karte markiert Produkte, die günstiger geworden sind, seit du zuletzt nachgesehen hast.
 
 ## Die Übersicht ordnen
