@@ -381,6 +381,27 @@
       },
     },
     {
+      // Böttcher AG: kein Preis in JSON-LD, Seite zeigt zuerst Nettopreise für Geschäftskunden.
+      // Jeder Preis trägt netto und brutto als Attribut; der große Preis ist ein „ab“-Preis der
+      // höchsten Staffel, für ein Stück gilt die erste Staffel.
+      name: 'Büromarkt Böttcher',
+      match: (host) => /(^|\.)bueromarkt-ag\.de$/.test(host),
+      extract(doc, url, cur) {
+        const main = $(doc, '.product-price-main-container .mainPrice[data-price-gross]');
+        let box = main;
+        for (let i = 0; box && i < 5 && !box.querySelector('.product-price-staffel [data-price-gross]'); i++) box = box.parentElement;
+        const staffel = box ? box.querySelector('.product-price-staffel [data-price-gross]') : null;
+        const el = staffel || main;
+        const p = el ? NS.parsePrice(el.getAttribute('data-price-gross'), cur) : null;
+        return {
+          prices: p ? [p] : [],
+          name: txt($(doc, 'h1')) || null,
+          image: null,
+          stock: stockFromText(txt($(doc, '.product-delivery-status'))),
+        };
+      },
+    },
+    {
       name: 'Magento',
       match: (host, doc) => !!$(doc, '[data-price-type="finalPrice"][data-price-amount]'),
       extract(doc) {

@@ -62,6 +62,23 @@ test('Magento 2: finalPrice statt oldPrice, Lager "unavailable"', () => {
   assert.equal(r.stockStatus, 'out_of_stock');
 });
 
+test('Büromarkt Böttcher: Bruttopreis für 1 Stück statt Netto-„ab“-Preis, Empfehlungen ignoriert', () => {
+  const r = run('bueromarkt-staffel.html', 'https://www.bueromarkt-ag.de/usv_eaton_3s_850_din_3s850d_8_ausgaenge,p-101778.html');
+  assert.equal(r.price, 164.21);
+  assert.equal(r.currency, 'EUR');
+  assert.equal(r.shop, 'Büromarkt Böttcher');
+  assert.equal(r.hasConsensus, true);
+  assert.equal(r.name, 'EATON USV 3S 850 DIN, 3S850D, 8 Ausgänge, Schuko, 850 VA');
+  assert.equal(r.imageUrl, 'https://cdn.bueromarkt-ag.de/product/abc/usv.jpg');
+  assert.equal(r.stockStatus, 'in_stock');
+});
+
+test('Büromarkt Böttcher: ohne Staffel der Bruttopreis des Hauptpreises, nicht lieferbar', () => {
+  const r = run('bueromarkt-einzelpreis.html', 'https://www.bueromarkt-ag.de/pc_lautsprecher_logitech_z150,p-123456.html');
+  assert.equal(r.price, 29.74);
+  assert.equal(r.stockStatus, 'out_of_stock');
+});
+
 test('OpenGraph-Preis + Seitentext stimmen überein', () => {
   const r = run('og-meta.html', 'https://shop.example/air2');
   assert.equal(r.price, 89.95);
