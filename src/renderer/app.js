@@ -350,6 +350,8 @@ function fillForm(p) {
   f.customName.value = p.customName || '';
   f.customName.placeholder = p.name;
   f.note.value = p.note || '';
+  f.url.value = p.url;
+  f.url.setCustomValidity('');
   rpc.getSettings().then((st) => { $('notify-off').hidden = st.notifications !== false; });
   $('s-saved').hidden = true;
 }
@@ -370,9 +372,21 @@ $('settings').addEventListener('submit', async (e) => {
   for (const [input, val] of [[f.targetPrice, targetPrice], [f.dropThreshold, dropThreshold]]) {
     input.setCustomValidity(Number.isNaN(val) ? 'Bitte eine Zahl größer 0 eingeben, z. B. 199,99' : '');
   }
+  f.url.setCustomValidity(f.url.value.trim() ? '' : 'Bitte die Adresse des Produkts eingeben.');
   if (!f.reportValidity()) return;
   const p = await rpc.getProduct(state.detailId);
   if (!p) return;
+  // Adresse zuerst: Ist sie ungültig oder schon vergeben, wird gar nichts gespeichert
+  let urlChanged = false;
+  if (f.url.value.trim() !== p.url) {
+    const res = await rpc.changeUrl(p.id, f.url.value);
+    if (res.error) {
+      f.url.setCustomValidity(res.error);
+      f.url.reportValidity();
+      return;
+    }
+    urlChanged = res.changed;
+  }
   const intervalMin = Number(f.intervalMin.value);
   const paused = f.paused.checked;
   const base = p.lastChecked || Date.now();
@@ -383,9 +397,23 @@ $('settings').addEventListener('submit', async (e) => {
     customName: f.customName.value, note: f.note.value,
   });
   formFor = null; // Formular nach dem Speichern neu füllen
-  $('s-saved').hidden = false;
-  setTimeout(() => { $('s-saved').hidden = true; }, 2500);
+  const saved = $('s-saved');
+  saved.hidden = false;
+  if (urlChanged && !paused) {
+    // Gleich mit der neuen Adresse prüfen, damit der Preis von dort sofort zu sehen ist
+    saved.textContent = 'Gespeichert ✓ – Preis wird mit der neuen Adresse geprüft …';
+    try {
+      await rpc.checkNow(p.id);
+    } finally {
+      await refresh();
+    }
+  }
+  saved.textContent = 'Gespeichert ✓';
+  saved.hidden = false;
+  setTimeout(() => { saved.hidden = true; }, 2500);
 });
+
+$('settings').url.addEventListener('input', (e) => e.target.setCustomValidity(''));
 
 $('d-csv').addEventListener('click', async () => {
   const out = $('d-csv-result');

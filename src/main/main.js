@@ -15,7 +15,7 @@ import {
 } from './autostart.js';
 import { canIntegrate, installMenuEntry, removeMenuEntry } from './desktop.js';
 import { notificationsFor, notificationText } from '../lib/rules.js';
-import { formatPrice, cleanText } from '../lib/format.js';
+import { formatPrice, cleanText, displayName } from '../lib/format.js';
 import { historyCsv, csvFileName } from '../lib/csv.js';
 import { buildBackup, planImport } from '../lib/backup.js';
 import { isNewer } from '../lib/version.js';
@@ -123,6 +123,23 @@ const methods = {
     if ('customName' in clean) clean.customName = cleanText(clean.customName, 200);
     if ('note' in clean) clean.note = cleanText(clean.note, 2000);
     return store.updateProduct(id, clean);
+  },
+  /**
+   * Andere Adresse für ein verfolgtes Produkt, z. B. ein Link von einem Preisvergleich mit
+   * Rabatt-Kennung. Preisverlauf und Einstellungen bleiben, geprüft wird ab jetzt die neue Adresse.
+   */
+  changeUrl(id, url) {
+    const p = store.getProduct(id);
+    if (!p) return { error: 'Das Produkt gibt es nicht mehr.' };
+    const text = String(url || '').trim();
+    if (!isWebUrl(text) || /\s/.test(text)) return { error: 'Das ist keine gültige Internetadresse. Sie muss mit https:// beginnen.' };
+    const norm = globalThis.Preiswaechter.normalizeProductUrl(text);
+    if (norm === p.url) return { product: p, changed: false };
+    const other = store.findProductByUrl(norm);
+    if (other) return { error: `Diese Adresse wird schon verfolgt: „${displayName(other)}“.` };
+    console.info(`Adresse geändert (${new URL(norm).hostname})`);
+    const product = store.updateProduct(id, { url: norm, lastError: null, errorCount: 0 });
+    return { product, changed: true };
   },
   analyseUrl: (url) => analyse(url, readPage),
   analyseInWindow: (url) => analyse(url, readVisible),

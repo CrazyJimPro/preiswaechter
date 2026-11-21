@@ -69,6 +69,24 @@ Shop-Namen sind oft sehr lang. Du kannst jedem Produkt einen eigenen Namen und e
 
 Der eigene Name erscheint in der Übersicht, in der Detailansicht und in den Benachrichtigungen. Den Namen aus dem Shop siehst du klein darunter. Die Notiz steht auf der Karte und über dem Diagramm, die Suche findet auch Wörter aus der Notiz. Leerst du das Feld **Eigener Name** und speicherst, gilt wieder der Name aus dem Shop.
 
+## Die Adresse eines Produkts ändern
+
+Manche Shops geben einen Rabatt nur, wenn man über einen Preisvergleich wie idealo zu ihnen kommt. Der Link von dort hat dann einen Zusatz, zum Beispiel `?vpid=…`, und nur mit diesem Zusatz zeigt der Shop den günstigeren Preis. Damit der Preiswächter diesen Preis sieht, setzt du den Link beim Produkt ein.
+
+1. Öffne das Angebot bei idealo und klicke auf den Shop. Der Shop öffnet sich im Browser.
+2. Kopiere die Adresse aus der Adresszeile des Browsers.
+3. Klicke im Preiswächter auf das Produkt und scrolle zu **Einstellungen für dieses Produkt**.
+4. Lösche den Inhalt des Feldes **Adresse** und füge den kopierten Link ein.
+5. Klicke auf **Speichern**.
+
+Der Preiswächter prüft sofort mit der neuen Adresse und zeigt den Preis von dort. Preisverlauf, Zielpreis und alle anderen Einstellungen bleiben erhalten. Werbe-Zusätze wie `utm_source` entfernt der Preiswächter, Zusätze wie `vpid` bleiben stehen.
+
+**Wenn etwas nicht klappt:**
+
+- **„Diese Adresse wird schon verfolgt“:** Das Produkt mit dieser Adresse steht schon in deiner Liste. Lösche einen der beiden Einträge.
+- **„Das ist keine gültige Internetadresse“:** Die Adresse muss mit `https://` beginnen. Kopiere sie noch einmal vollständig aus der Adresszeile.
+- **Der Rabatt verschwindet nach einiger Zeit:** Solche Links können ablaufen. Hole dir bei idealo einen neuen Link und setze ihn wieder ein.
+
 ## Den Preisverlauf als CSV-Datei speichern
 
 1. Klicke in der Übersicht auf das Produkt.

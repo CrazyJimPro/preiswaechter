@@ -28,7 +28,9 @@ const shop = http.createServer((req, res) => {
   const route = req.url.split('?')[0];
   const send = (code, body) => { res.writeHead(code, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(body); };
   if (route === '/p.html') {
-    return send(200, `<!doctype html><html><head><title>P</title><script type="application/ld+json">{"@type":"Product","name":"Kaffeevollautomat XY","offers":{"price":"${state.price}","priceCurrency":"EUR","availability":"https://schema.org/InStock"}}</script></head><body><h1>Kaffeevollautomat XY</h1>${state.uvp ? `<p>UVP: ${state.uvp} €</p>` : ''}</body></html>`);
+    // Wie bei Shops, die über einen Preisvergleich-Link (vpid=…) Rabatt geben
+    const price = /[?&]vpid=/.test(req.url) ? 333 : state.price;
+    return send(200, `<!doctype html><html><head><title>P</title><script type="application/ld+json">{"@type":"Product","name":"Kaffeevollautomat XY","offers":{"price":"${price}","priceCurrency":"EUR","availability":"https://schema.org/InStock"}}</script></head><body><h1>Kaffeevollautomat XY</h1>${state.uvp ? `<p>UVP: ${state.uvp} €</p>` : ''}</body></html>`);
   }
   if (route === '/js.html') {
     return send(200, `<!doctype html><html><head><title>JS</title></head><body><h1>JS-Produkt</h1><div class="product-price" id="p"></div><script>setTimeout(()=>{document.getElementById('p').textContent='${String(state.js).replace('.', ',')} €'},800)</script></body></html>`);
@@ -324,6 +326,35 @@ try {
   await sleep(300);
   p = await productBy('p.html');
   ok(p.customName === null && p.note === null && (await page.evaluate(() => document.getElementById('d-name').textContent)).includes('Kaffeevollautomat'), 'leerer Name: wieder Shop-Name');
+
+  console.log('Adresse ändern');
+  const urlBefore = p.url;
+  const histBefore = (await call('getHistory', p.id)).length;
+  ok((await page.evaluate(() => document.getElementById('settings').url.value)) === urlBefore, 'Formular zeigt die Adresse');
+  await page.evaluate((u) => {
+    const f = document.getElementById('settings');
+    f.url.value = u; f.requestSubmit();
+  }, `${BASE}/p.html?vpid=abc123&utm_source=idealo`);
+  for (let i = 0; i < 50 && (await productBy('vpid=abc123'))?.currentPrice !== 333; i++) await sleep(300);
+  let moved = await productBy('vpid=abc123');
+  ok(moved && moved.id === p.id && moved.url === `${BASE}/p.html?vpid=abc123`, 'neue Adresse gespeichert, Werbe-Zusatz entfernt, gleiches Produkt');
+  ok(moved && moved.currentPrice === 333 && (await call('getHistory', p.id)).length > histBefore, 'sofort mit neuer Adresse geprüft, Verlauf bleibt');
+  await sleep(300);
+  ok((await page.evaluate(() => document.getElementById('d-price').textContent)).includes('333,00'), 'neuer Preis in der Anzeige');
+  const dup = await call('changeUrl', p.id, `${BASE}/js.html`);
+  ok(dup.error && dup.error.includes('schon verfolgt'), 'Adresse eines anderen Produkts abgelehnt');
+  ok((await call('changeUrl', p.id, 'kein link')).error?.includes('https://'), 'ungültige Adresse abgelehnt');
+  const formCheck = await page.evaluate(async () => {
+    const f = document.getElementById('settings');
+    f.url.value = 'kein link'; f.note.value = 'darf nicht gespeichert werden'; f.requestSubmit();
+    await new Promise((r) => setTimeout(r, 400));
+    const msg = f.url.validationMessage;
+    return msg;
+  });
+  p = await productBy('vpid=abc123');
+  ok(formCheck.includes('https://') && p && p.note !== 'darf nicht gespeichert werden', 'Fehler am Feld, sonst nichts gespeichert');
+  ok((await call('changeUrl', p.id, urlBefore)).changed === true, 'zurück auf die alte Adresse');
+  p = await productBy('p.html');
   state.price = 400;
   state.uvp = null;
   await call('checkNow', p.id);
